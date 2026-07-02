@@ -30,7 +30,7 @@ def mostrar_detalle():
             opciones = list(PALETA_FACULTADES.keys())
             seleccion_filtro = st.selectbox("Seleccione Unidad Académica:", opciones)
         else:
-            opciones = ["Todas las Áreas", "Gastos en Personal", "Gastos de Funcionamiento", "Inversiones Operativas"]
+            opciones = ["Todas las Áreas", "Adm. General", "Alumnos", "Tesorería"]
             seleccion_filtro = st.selectbox("Filtrar por Área / Dirección de Gasto:", opciones)
             
     with f_col3:

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from components.detalleGastos import renderizar_seccion_detalle_gastos
 
 PALETA_FACULTADES = {
     "Todas las Facultades": {
@@ -43,10 +44,10 @@ def renderizar_kpis_superiores(datos_unidad, color_borde, color_texto):
         """
     
     with k_col1: st.markdown(html_kpi("$ Disponible", datos_unidad["disp"]), unsafe_allow_html=True)
-    with k_col2: st.markdown(html_kpi("Cant. Alumnos", datos_unidad["alum"]), unsafe_allow_html=True)
+    with k_col2: st.markdown(html_kpi("Alumnos activos", datos_unidad["alum"]), unsafe_allow_html=True)
     with k_col3: st.markdown(html_kpi("Cant. Docentes", datos_unidad["doc"]), unsafe_allow_html=True)
     with k_col4: st.markdown(html_kpi("Horas Docentes", datos_unidad["hs"]), unsafe_allow_html=True)
-    with k_col5: st.markdown(html_kpi("Cant. Adm. Nodo", datos_unidad["adm"]), unsafe_allow_html=True)
+    with k_col5: st.markdown(html_kpi("Cant. Colaboradores", datos_unidad["adm"]), unsafe_allow_html=True)
 
 def renderizar_bloques_facultades():
     """Muestra la cuadrícula general de las 5 facultades juntas (Vista Consolidada)"""
@@ -61,7 +62,7 @@ def renderizar_bloques_facultades():
                     <span style="font-size: 10px; color: #64748b; font-weight: 600;">DISPONIBLE:</span><br>
                     <span style="font-size: 16px; font-weight: 800; color: #1e293b;">{datos['disp']}</span>
                 </div>
-                <div style="margin-top: 10px; display: flex; justify-content: space-between; font-size: 11px; color: #475569;">
+                <div style="margin-top: 10px; display: flex; justify-content: space-between; font-size: 15px; color: #475569;">
                     <div>Alumnos:<br><strong style="color:#1e293b;">{datos['alum']}</strong></div>
                     <div style="text-align: right;">Docentes:<br><strong style="color:#1e293b;">{datos['doc']}</strong></div>
                 </div>
@@ -134,7 +135,7 @@ def cargar_vista_academica(seleccion_filtro, sede="Todas las Sedes", mes="Anual 
     
     st.markdown(f"""
         <h3 style="margin-bottom: 25px; font-weight: 600; color: #005088;">
-            Indicadores Generales: 
+            Indicadores |   
             <span style="color: {cfg['texto']}; font-size: 30px; font-weight: 800; margin-left: 5px;">
                 {seleccion_filtro}
             </span>
@@ -143,6 +144,7 @@ def cargar_vista_academica(seleccion_filtro, sede="Todas las Sedes", mes="Anual 
     
     if seleccion_filtro != "Todas las Facultades":
         renderizar_kpis_superiores(cfg, cfg["border"], cfg["texto"])
+        renderizar_seccion_detalle_gastos(seleccion_filtro, cfg)
         st.markdown("<br>", unsafe_allow_html=True)
     else:
         renderizar_kpis_superiores(cfg, "#005088", "#005088")

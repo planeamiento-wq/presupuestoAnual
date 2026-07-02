@@ -7,6 +7,7 @@ from components.kpiCard import crear_kpi
 from components.card import abrir_card, cerrar_card
 from pages.Resumen import mostrar_resumen
 from pages.detalle import mostrar_detalle
+from pages.ingresoHistorico import mostrar_historico
 
 try:
     from Resumen import mostrar_resumen
@@ -16,7 +17,7 @@ except ImportError:
 
 # CONFIGURACIÓN DE PÁGINA GLOBALES
 st.set_page_config(
-    page_title="Proyección Presupuestaria Institucional",
+    page_title = "Presupuesto Institucional",
     layout="wide"
 )
 
@@ -55,7 +56,7 @@ if opcion_menu == "Inicio":
     st.markdown(
         """
         <div class='titulo-portada'>
-            PROYECCIÓN PRESUPUESTARIA INSTITUCIONAL
+            PRESUPUESTO INSTITUCIONAL
         </div>
         """,
         unsafe_allow_html=True
@@ -90,6 +91,4 @@ elif opcion_menu == "Detalle Presupuestario":
 
 # Caso D: Espacio reservado para los gráficos interanuales
 elif opcion_menu == "Gráficos Históricos":
-    st.title("Gráficos Históricos")
-    st.info("Próximamente: Tendencias interanuales.")
-    crear_footer()
+    mostrar_historico()
