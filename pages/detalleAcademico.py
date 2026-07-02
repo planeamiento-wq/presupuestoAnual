@@ -1,4 +1,7 @@
 import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
 PALETA_FACULTADES = {
     "Todas las Facultades": {
@@ -6,23 +9,23 @@ PALETA_FACULTADES = {
         "disp": "$ 24.906 M", "alum": "6.840", "doc": "580", "hs": "4.580", "adm": "95"
     },
     "Facultad de Economía y Administración": {
-        "bg": "#ffffff", "border": "#24A652", "texto": "#24A652", "chip_bg": "#B8E3C6",
+        "bg": "#ffffff", "border": "#C2EABA", "texto": "#24A652", "chip_bg": "#B8E3C6",
         "disp": "$ 7.160 M", "alum": "2.100", "doc": "165", "hs": "1.450", "adm": "28"
     },
     "Facultad de Ciencias Jurídicas": {
-        "bg": "#ffffff", "border": "#F21905", "texto": "#F21905", "chip_bg": "#F3C4D6",
+        "bg": "#ffffff", "border": "#FBC4C0", "texto": "#F21905", "chip_bg": "#F3C4D6",
         "disp": "$ 5.155 M", "alum": "1.450", "doc": "120", "hs": "1.100", "adm": "20"
     },
     "Facultad de Ingeniería": {
-        "bg": "#ffffff", "border": "#F9812A", "texto": "#F9812A", "chip_bg": "#AEC6CF",
+        "bg": "#ffffff", "border": "#FCE2CD", "texto": "#F9812A", "chip_bg": "#AEC6CF",
         "disp": "$ 3.437 M", "alum": "890", "doc": "95", "hs": "980", "adm": "15"
     },
     "Facultad de Humanidades": {
-        "bg": "#ffffff", "border": "#FFA100", "texto": "#FFA100", "chip_bg": "#F9E7A3",
+        "bg": "#ffffff", "border": "#FEF3C7", "texto": "#FFA100", "chip_bg": "#F9E7A3",
         "disp": "$ 2.864 M", "alum": "620", "doc": "80", "hs": "750", "adm": "12"
     },
     "Facultad de Ciencias de la Salud": {
-        "bg": "#ffffff", "border": "#41A9DF", "texto": "#41A9DF", "chip_bg": "#E8D7F1",
+        "bg": "#ffffff", "border": "#C7E8F7", "texto": "#41A9DF", "chip_bg": "#E8D7F1",
         "disp": "$ 6.290 M", "alum": "1.780", "doc": "120", "hs": "1.300", "adm": "20"
     }
 }
@@ -71,26 +74,89 @@ def renderizar_bloques_facultades():
     with b_col4: st.markdown(html_bloque("Humanidades", PALETA_FACULTADES["Facultad de Humanidades"], PALETA_FACULTADES["Facultad de Humanidades"]), unsafe_allow_html=True)
     with b_col5: st.markdown(html_bloque("Ciencias de la Salud", PALETA_FACULTADES["Facultad de Ciencias de la Salud"], PALETA_FACULTADES["Facultad de Ciencias de la Salud"]), unsafe_allow_html=True)
 
-def cargar_vista_academica(seleccion_filtro):
+def renderizar_grafico_participacion():
+    """Genera un gráfico de barras horizontales puro e infalible con los colores clavados a mano"""
+    
+    # 1. Definimos los datos crudos en el orden EXACTO que querés que aparezcan de abajo hacia arriba
+    # Sabiendo que Humanidades tiene el menor % (va abajo) y Economía el mayor (va arriba)
+    unidades = [
+        "Humanidades",
+        "Ingeniería",
+        "Ciencias Jurídicas",
+        "Ciencias de la Salud",
+        "Economía y Administración"
+    ]
+    
+    porcentajes = [11.5, 13.8, 20.7, 25.3, 28.7]
+    
+    # 2. Inyectamos los colores pasteles de tus tarjetas en el orden EXACTO de la lista de arriba
+    colores_pasteles = [
+        "#FEF3C7",  # Humanidades (Amarillo pastel)
+        "#FCE2CD",  # Ingeniería (Naranja pastel)
+        "#FBC4C0",  # Ciencias Jurídicas (Coral/Rojo pastel)
+        "#C7E8F7",  # Ciencias de la Salud (Celeste pastel)
+        "#C2EABA"   # Economía y Adm. (Verde pastel)
+    ]
+    
+    textos_etiquetas = [f"{p:.1f}%" for p in porcentajes]
+    
+    # 3. Construimos el gráfico con Graph Objects (Cero automatismos, control total)
+    fig = go.Figure(go.Bar(
+        x=porcentajes,
+        y=unidades,
+        orientation='h',
+        text=textos_etiquetas,
+        textposition='outside',
+        textfont=dict(size=12, color="#1e293b"),
+        marker=dict(
+            color=colores_pasteles, # <-- Pintamos cada barra con su color correspondiente
+            line=dict(width=0)       # Sin bordes feos
+        ),
+        hovertemplate="<b>%{y}</b><br>Participación: %{x}%<extra></extra>"
+    ))
+    
+    # 4. Ajustes del contenedor estético
+    fig.update_layout(
+        showlegend=False,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=20, r=40, t=10, b=10),
+        height=240,
+        xaxis=dict(showgrid=True, gridcolor="#f1f5f9", range=[0, 40]),
+        yaxis=dict(tickfont=dict(size=12, color="#475569"))
+    )
+    
+    st.plotly_chart(fig, width='stretch', config={'displayModeBar': False})
+
+def cargar_vista_academica(seleccion_filtro, sede="Todas las Sedes", mes="Anual (Ene-Dic)"):
     """Orquesta exclusivamente el comportamiento del layout académico"""
     cfg = PALETA_FACULTADES[seleccion_filtro]
     
-    # TÍTULO LIMPIO: Le quitamos el background y el padding al span del nombre
     st.markdown(f"""
         <h3 style="margin-bottom: 25px; font-weight: 600; color: #005088;">
-            🎓 Indicadores Generales: 
+            Indicadores Generales: 
             <span style="color: {cfg['texto']}; font-size: 30px; font-weight: 800; margin-left: 5px;">
                 {seleccion_filtro}
             </span>
         </h3>
     """, unsafe_allow_html=True)
     
-    # Renderizado condicional según filtro seleccionado
     if seleccion_filtro != "Todas las Facultades":
         renderizar_kpis_superiores(cfg, cfg["border"], cfg["texto"])
         st.markdown("<br>", unsafe_allow_html=True)
-        # Acá podés agregar a futuro sub-filtros o tablas por unidad académica
     else:
-        renderizar_kpis_superiores(cfg, "#005088", "#005088") # Totales en azul original
+        renderizar_kpis_superiores(cfg, "#005088", "#005088")
         st.markdown("<br>", unsafe_allow_html=True)
+        
         renderizar_bloques_facultades()
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        st.markdown("""
+            <div style="margin-bottom: 10px;">
+                <strong style="color: #005088; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    📊 Distribución Porcentual del Presupuesto Asignado
+                </strong>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        renderizar_grafico_participacion()

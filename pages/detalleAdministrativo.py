@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-def cargar_vista_administrativa(seleccion_filtro):
+def cargar_vista_administrativa(seleccion_filtro, sede="Todas las Sedes", mes="Anual (Ene-Dic)"):
     """Maneja el bloque administrativo de manera totalmente desacoplada"""
     st.markdown(f"### 📋 Indicadores Generales: {seleccion_filtro}")
     

@@ -13,16 +13,18 @@ def mostrar_detalle():
     )
     
     # --------------------------------======
-    # CONTENEDOR DE FILTROS EN PARALELO
+    # CONTENEDOR DE FILTROS EN PARALELO (4 Columnas)
     # --------------------------------======
-    f_col1, f_col2 = st.columns([1, 2])
+    # Ajustamos las proporciones para que el radio y el selectbox principal tengan buen espacio
+    f_col1, f_col2, f_col3, f_col4 = st.columns([1.5, 2, 1.2, 1.2])
     
     with f_col1:
         tipo_detalle = st.radio(
-            "Seleccione la categoría de análisis:", 
+            "Categoría de análisis:", 
             ["Administrativo", "Académico"], 
             horizontal=True
         )
+        
     with f_col2:
         if tipo_detalle == "Académico":
             opciones = list(PALETA_FACULTADES.keys())
@@ -31,14 +33,34 @@ def mostrar_detalle():
             opciones = ["Todas las Áreas", "Gastos en Personal", "Gastos de Funcionamiento", "Inversiones Operativas"]
             seleccion_filtro = st.selectbox("Filtrar por Área / Dirección de Gasto:", opciones)
             
+    with f_col3:
+        # Filtro independiente de Sede
+        seleccion_sede = st.selectbox(
+            "Sede:",
+            ["Todas las Sedes", "Sede Central", "Campus Norte", "Anexo Sur"],
+            key="filtro_sede_global"
+        )
+        
+    with f_col4:
+        # Filtro independiente de Mes
+        seleccion_mes = st.selectbox(
+            "Mes:",
+            [
+                "Anual (Ene-Dic)", "Enero", "Febrero", "Marzo", "Abril", "Mayo", 
+                "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            ],
+            key="filtro_mes_global"
+        )
+            
     st.markdown("---")
     
     # --------------------------------======
     # ORQUESTADOR DE REDIRECCIÓN MODULAR
     # --------------------------------======
+    # Pasamos de forma transparente la selección del filtro principal, la sede y el mes
     if tipo_detalle == "Académico":
-        cargar_vista_academica(seleccion_filtro)
+        cargar_vista_academica(seleccion_filtro, sede=seleccion_sede, mes=seleccion_mes)
     else:
-        cargar_vista_administrativa(seleccion_filtro)
+        cargar_vista_administrativa(seleccion_filtro, sede=seleccion_sede, mes=seleccion_mes)
 
     crear_footer()

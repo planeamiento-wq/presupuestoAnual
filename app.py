@@ -34,9 +34,8 @@ with st.sidebar:
         label_visibility="collapsed"
     )
     
-    st.markdown("---")
-    st.markdown("### Filtros Globales")
-    sede = st.selectbox("Sede:", ["Sede Central", "Sede Concepción", "Sede Yerba Buena"])
+    #st.markdown("### Filtros Globales")
+    #sede = st.selectbox("Sede:", ["Sede Central", "Sede Concepción", "Sede Yerba Buena"])
     #Smes_corte = st.select_slider("Mes de corte:", options=["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"], value="Jun")
 
 
