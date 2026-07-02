@@ -1,6 +1,3 @@
-# ==========================================
-# app.py - MAQUETA INTEGRADA PARA MAÑANA
-# ==========================================
 import streamlit as st
 import pandas as pd
 from styles.styles import cargar_estilo
@@ -14,7 +11,7 @@ from pages.detalle import mostrar_detalle
 try:
     from Resumen import mostrar_resumen
 except ImportError:
-    # Por si acaso lo guardaste dentro de una carpeta llamada pages/
+    # Por si acaso  dentro de  carpeta pages/
     from pages.Resumen import mostrar_resumen
 
 # CONFIGURACIÓN DE PÁGINA GLOBALES
@@ -40,7 +37,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### Filtros Globales")
     sede = st.selectbox("Sede:", ["Sede Central", "Sede Concepción", "Sede Yerba Buena"])
-    mes_corte = st.select_slider("Mes de corte:", options=["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"], value="Jun")
+    #Smes_corte = st.select_slider("Mes de corte:", options=["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"], value="Jun")
 
 
 # ==== LÓGICA DE NAVEGACIÓN ====
