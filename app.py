@@ -78,6 +78,7 @@ if opcion_menu == "Inicio":
         """,
         unsafe_allow_html=True
     )
+    st.html("<br>" * 8)
     
     crear_footer()
 

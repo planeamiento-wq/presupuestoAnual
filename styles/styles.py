@@ -76,7 +76,7 @@ def cargar_estilo():
 
     .kpi-value{
 
-        font-size:32px;
+        font-size:29px;
 
         font-weight:700;
 
