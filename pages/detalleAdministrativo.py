@@ -19,7 +19,7 @@ def cargar_vista_administrativa(seleccion_filtro, sede="Todas las Sedes", mes="A
     """, unsafe_allow_html=True)
 
     # Indicadores superiores compactos de dos columnas
-    dkpi1, dkpi2, _, _ = st.columns([1, 1, 1, 1])
+    _, _,dkpi1, dkpi2 = st.columns([1, 1, 1, 1])
     
     with dkpi1:
         st.markdown("""
@@ -41,4 +41,4 @@ def cargar_vista_administrativa(seleccion_filtro, sede="Todas las Sedes", mes="A
         renderizar_seccion_detalle_gastos(seleccion_filtro, config_admin)
     else:
         st.markdown("<br>", unsafe_allow_html=True)
-        st.info("Módulo administrativo unificado. Seleccione una Dirección de Gasto o Área arriba para auditar las partidas de Personal y Funcionamiento.")
+        st.info("Módulo administrativo unificado. Seleccione un Servicio o Área arriba para auditar las partidas de Personal y Funcionamiento.")

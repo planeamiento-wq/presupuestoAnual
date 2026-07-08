@@ -67,7 +67,7 @@ def mostrar_resumen():
     col_mes = df.columns[columnas_df.index(df.columns[meses_disponibles.index(mes_seleccionado) + (columnas_df.index('Concepto') + 1)])]
 
     # =========================================================
-    # 2. MOTOR MATEMÁTICO REAL (Garantía de Resta Absoluta)
+    # 2. MOTOR MATEMÁTICO REAL 
     # =========================================================
     
     def normalizar_texto(texto):
@@ -94,10 +94,10 @@ def mostrar_resumen():
         )
         return df_filtrado[mascara][col_mes].sum()
 
-    # ---- KPI 1: INGRESO POR CUOTAS DE GRADO (Forzamos magnitud pura positiva) ----
+    # ---- KPI 1: INGRESO POR CUOTAS DE GRADO (positiva) ----
     ing_cuotas_grado = abs(sum_concepto_robusto('INGR. CUOTAS GRADO'))
 
-    # Descuentos institucionales (Aseguramos valores absolutos positivos)
+    # Descuentos institucionales (valores absolutos positivos)
     bonificaciones = abs(sum_concepto_robusto('BONIFICACIONES'))
     reduc_becas = abs(sum_concepto_robusto('REDUCC. BECAS'))
     reduc_sede = abs(sum_concepto_robusto('REDUCC. SEDE'))

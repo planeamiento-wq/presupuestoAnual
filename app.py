@@ -48,7 +48,7 @@ if opcion_menu == "Inicio":
     col1, col2, col3 = st.columns([1,8,1])
     with col2:
         st.image(
-            "assets/banner3.png",
+            "assets/banner__.png",
             width="stretch"
         )
 

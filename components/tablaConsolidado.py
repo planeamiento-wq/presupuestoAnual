@@ -2,7 +2,7 @@ import streamlit as st
 
 def crear_tabla_consolidado(datos_calculados):
     """
-    Renderiza la tabla de cascada presupuestaria clonando el diseño del PPT.
+    Renderiza la tabla de cascada presupuestaria del PPT.
     Recibe un diccionario con los valores numéricos calculados en tiempo real.
     """
     
@@ -17,7 +17,7 @@ def crear_tabla_consolidado(datos_calculados):
         num = f"$ {abs(v):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f'<span style="color: #dc3545;">-$ {num[2:]}</span>'
 
-    # Estilos CSS específicos para clonar la tabla del PPT
+    # Estilos CSS específicos: tabla del PPT
     st.markdown("""
         <style>
         .tabla-unsta {
