@@ -216,3 +216,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Entornos virtuales (evita subir las librerías instaladas con uv/pip)
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Archivos de configuración con contraseñas
+.streamlit/secrets.toml
+
+# Archivos temporales o de sistema
+.DS_Store
+Thumbs.db
