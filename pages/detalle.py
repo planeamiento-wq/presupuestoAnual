@@ -37,7 +37,7 @@ def mostrar_detalle():
         # Filtro independiente de Sede
         seleccion_sede = st.selectbox(
             "Sede:",
-            ["Todas las Sedes", "Sede Central", "Campus Norte", "Anexo Sur"],
+            ["Todas las Sedes", "CENTRAL", "CONCEPCIÓN", "BUENOS AIRES"],
             key="filtro_sede_global"
         )
         

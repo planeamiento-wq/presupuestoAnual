@@ -1,43 +1,63 @@
-import streamlit as st
 import pandas as pd
-from styles.styles import cargar_estilo
-from components.header import crear_header
-from components.footer import crear_footer
-from components.kpiCard import crear_kpi
+import streamlit as st
 from components.card import abrir_card, cerrar_card
-from pages.Resumen import mostrar_resumen
+from components.footer import crear_footer
+from components.header import crear_header
+from components.kpiCard import crear_kpi
 from pages.detalle import mostrar_detalle
 from pages.ingresoHistorico import mostrar_historico
+from pages.Resumen import mostrar_resumen
+from styles.styles import cargar_estilo
 
 try:
     from Resumen import mostrar_resumen
 except ImportError:
-    # Por si acaso  dentro de  carpeta pages/
+    # Por si acaso dentro de carpeta pages/
     from pages.Resumen import mostrar_resumen
 
 # CONFIGURACIÓN DE PÁGINA GLOBALES
-st.set_page_config(
-    page_title = "Presupuesto Institucional",
-    layout="wide"
-)
+st.set_page_config(page_title="Presupuesto Institucional", layout="wide")
 
 # Llamo al CSS global
 cargar_estilo()
 
+# ------------------------------------------------------------------
+# OCULTAR NAVEGACIÓN AUTOMÁTICA DE STREAMLIT (Carpetas /pages)
+# ------------------------------------------------------------------
+st.markdown(
+    """
+    <style>
+        [data-testid="stSidebarNav"] {
+            display: none !important;
+        }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
+
+
 # ==== MENÚ LATERAL (Sidebar) ====
 with st.sidebar:
-    st.markdown("<h2 style='text-align:center; color:#005088; margin-top:20px;'>Menú Presupuesto</h2>", unsafe_allow_html=True)
-    
+    st.markdown(
+        "<h2 style='text-align:center; color:#005088; margin-top:20px;'>Menú Presupuesto</h2>",
+        unsafe_allow_html=True,
+    )
+
     # Selector de páginas
     opcion_menu = st.radio(
         "Navegación:",
-        ["Inicio", "Resumen Ejecutivo", "Detalle Presupuestario", "Gráficos Históricos"],
-        label_visibility="collapsed"
+        [
+            "Inicio",
+            "Resumen Ejecutivo",
+            "Detalle Presupuestario",
+            "Gráficos Históricos",
+        ],
+        label_visibility="collapsed",
     )
-    
-    #st.markdown("### Filtros Globales")
-    #sede = st.selectbox("Sede:", ["Sede Central", "Sede Concepción", "Sede Yerba Buena"])
-    #Smes_corte = st.select_slider("Mes de corte:", options=["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"], value="Jun")
+
+    # st.markdown("### Filtros Globales")
+    # sede = st.selectbox("Sede:", ["Sede Central", "Sede Concepción", "Sede Yerba Buena"])
+    # Smes_corte = st.select_slider("Mes de corte:", options=["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"], value="Jun")
 
 
 # ==== LÓGICA DE NAVEGACIÓN ====
@@ -45,12 +65,9 @@ with st.sidebar:
 # Caso A: Si el usuario elige "Inicio / Portada", ejecutamos tu código original de portada
 if opcion_menu == "Inicio":
     # BANNER
-    col1, col2, col3 = st.columns([1,8,1])
+    col1, col2, col3 = st.columns([1, 8, 1])
     with col2:
-        st.image(
-            "assets/banner__.png",
-            width="stretch"
-        )
+        st.image("assets/banner__.png", width="stretch")
 
     # TÍTULOS
     st.markdown(
@@ -59,14 +76,14 @@ if opcion_menu == "Inicio":
             PRESUPUESTO INSTITUCIONAL
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     st.markdown(
         """
         <div class='subtitulo-portada'> 2026 </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     # DESCRIPCIÓN
@@ -76,10 +93,10 @@ if opcion_menu == "Inicio":
             Proyección y seguimiento de ingresos, egresos, inversiones y resultados institucionales.
         </div>
         """,
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
     st.html("<br>" * 8)
-    
+
     crear_footer()
 
 # Caso B: Si elige "Resumen Ejecutivo", abrimos la "caja" de tu componente

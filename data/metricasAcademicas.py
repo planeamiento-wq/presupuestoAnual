@@ -1,0 +1,361 @@
+import pandas as pd
+import streamlit as st
+from utils.data_loader import cargar_datos_presupuesto
+from utils.conexion import ejecutar_sql
+import unicodedata
+
+def normalizar_texto_sede(texto):
+    """Quita acentos, convierte a mayúsculas y limpia espacios para hacer comparaciones tolerantes."""
+    if not isinstance(texto, str) or not texto:
+        return ""
+    # Elimina tildes y diacríticos (ej: CONCEPCIÓN -> CONCEPCION)
+    texto_sin_tildes = "".join(
+        c
+        for c in unicodedata.normalize("NFD", texto)
+        if unicodedata.category(c) != "Mn"
+    )
+    return texto_sin_tildes.upper().strip()
+
+
+def normalizar_facultad(nombre):
+    """Mapea las unidades académicas reconociendo a Formación Humanística como unidad propia."""
+    if not isinstance(nombre, str) or not nombre:
+        return None
+
+    n = nombre.upper().strip()
+
+    if (
+        "DEPTO.FORM" in n
+        or "FORM.HUM" in n
+        or "HUM.CRIST" in n
+        or "FORMAC" in n
+        or "CRISTIANA" in n
+        or "DFHC" in n
+    ) and not ("FAC. HUMANIDADES" in n or "FACULTAD DE HUMANIDADES" in n):
+        return "Dpto. de Formación Humanística"
+    elif "CEOP" in n or "CENTRO DE ESTUDIOS" in n:
+        return "CEOP"
+    elif "ECON" in n or "ADM" in n or "FAC. ECON" in n:
+        return "Facultad de Economía y Administración"
+    elif (
+        "JURID" in n
+        or "POLIT" in n
+        or "SOC" in n
+        or "DERECHO" in n
+        or "FAC. CS JURID" in n
+    ):
+        return "Facultad de Ciencias Jurídicas"
+    elif "INGENIER" in n or "INGENIÉR" in n or "FAC. INGENIERIA" in n:
+        return "Facultad de Ingeniería"
+    elif "SALUD" in n or "MEDICIN" in n or "FAC. CS. SALUD" in n:
+        return "Facultad de Ciencias de la Salud"
+    elif "HUMANID" in n or "FILOSOF" in n or "TEOLOG" in n:
+        return "Facultad de Humanidades"
+    else:
+        return None
+
+
+@st.cache_data(ttl=300)
+def obtener_alumnos_activos_por_facultad(sede="Todas las Sedes"):
+    """Devuelve el resumen por facultad y el total dinámico seguro considerando el filtro tolerante de sede."""
+    query = """
+        SELECT 
+            pos.sede,
+            pos.facultad,
+            COUNT(DISTINCT pos.id_alumno) AS activos
+        FROM (
+            SELECT sede, unidad_largo AS facultad, id_alumno FROM si_inscriptos_new
+            UNION
+            SELECT sede, unidad AS facultad, id_alumno FROM si_reinscriptos
+        ) pos
+        LEFT JOIN (
+            SELECT id_alumno FROM si_cancela_matricula
+            UNION
+            SELECT id_alumno FROM si_cancelados_reinscriptos
+        ) neg ON pos.id_alumno = neg.id_alumno
+        WHERE neg.id_alumno IS NULL
+        GROUP BY pos.sede, pos.facultad;
+    """
+    try:
+        df = ejecutar_sql(query)
+        if df is None or df.empty:
+            return {}, 0
+
+        # Blindaje de nulos en 'sede' y 'facultad'
+        df["sede"] = df["sede"].fillna("").astype(str)
+        df["facultad"] = df["facultad"].fillna("").astype(str)
+
+        # Filtro Tolerante por Sede
+        if sede != "Todas las Sedes":
+            sede_buscada = normalizar_texto_sede(sede)
+
+            def coincide_sede(val_columna):
+                val_norm = normalizar_texto_sede(str(val_columna))
+                if "CONCEP" in sede_buscada or "CONCEO" in sede_buscada:
+                    return "CONCEP" in val_norm or "CONCEO" in val_norm
+                return sede_buscada in val_norm or val_norm in sede_buscada
+
+            df = df[df["sede"].apply(coincide_sede)]
+
+        total_real_absoluto = (
+            int(df["activos"].sum()) if not df.empty else 0
+        )
+
+        # Mapeo por facultad oficial
+        df["facultad_oficial"] = df["facultad"].apply(normalizar_facultad)
+        df_mapeado = df.dropna(subset=["facultad_oficial"])
+
+        resumen = (
+            df_mapeado.groupby("facultad_oficial")["activos"].sum().to_dict()
+        )
+
+        return resumen, total_real_absoluto
+
+    except Exception as e:
+        st.error(f"Error al procesar el cálculo dinámico de Alumnos: {e}")
+        return {}, 0
+
+
+@st.cache_data(ttl=300)
+def obtener_colaboradores_por_area(sede="Todas las Sedes"):
+    """Consulta los colaboradores de unidades académicas filtrando por 'FAC.', Formación Humanística y C.E.O.P."""
+
+    # Definimos la función de mapeo al inicio para que esté accesible en todo el scope
+    def mapear_colaborador_academico(area_nombre):
+        if not isinstance(area_nombre, str) or not area_nombre:
+            return None
+
+        a = area_nombre.upper().strip()
+
+        # Caso 1: Dpto. de Formación Humanística
+        if any(
+            k in a
+            for k in [
+                "DEPTO FORMAC",
+                "HUM. CRIST",
+                "HUM.CRIST",
+                "FORM.HUM",
+                "DEPTO.FORM",
+            ]
+        ):
+            return "Dpto. de Formación Humanística"
+
+        # Caso 2: C.E.O.P.
+        if "C.E.O.P" in a or "CEOP" in a:
+            return "CEOP"
+
+        # Caso 3: Facultades que empiezan con 'FAC.'
+        if a.startswith("FAC.") or "FACULTAD" in a:
+            return normalizar_facultad(a)
+
+        # Áreas administrativas no académicas se ignoran
+        return None
+
+    # Intentamos primero con la columna 'sede'
+    try:
+        query = """
+            SELECT 
+                TRIM(seccion_nombre) AS area,
+                sede,
+                COUNT(*) AS total
+            FROM si_empleados
+            GROUP BY TRIM(seccion_nombre), sede;
+        """
+        df = ejecutar_sql(query)
+
+        if df is not None and not df.empty:
+            # Filtro por Sede si aplica
+            if sede != "Todas las Sedes" and "sede" in df.columns:
+                sede_buscada = normalizar_texto_sede(sede)
+
+                def coincide_sede(val_columna):
+                    val_norm = normalizar_texto_sede(str(val_columna))
+                    if "CONCEP" in sede_buscada or "CONCEO" in sede_buscada:
+                        return "CONCEP" in val_norm or "CONCEO" in val_norm
+                    return sede_buscada in val_norm or val_norm in sede_buscada
+
+                df = df[df["sede"].apply(coincide_sede)]
+
+            if not df.empty:
+                df["facultad_oficial"] = df["area"].apply(
+                    mapear_colaborador_academico
+                )
+                df_mapeado = df.dropna(subset=["facultad_oficial"])
+                return (
+                    df_mapeado.groupby("facultad_oficial")["total"]
+                    .sum()
+                    .to_dict()
+                )
+
+    except Exception:
+        pass  # Si la columna 'sede' no existe en la base, cae al bloque de abajo
+
+    # Fallback: Query simple sin columna 'sede'
+    try:
+        query_simple = """
+            SELECT 
+                TRIM(seccion_nombre) AS area,
+                COUNT(*) AS total
+            FROM si_empleados
+            GROUP BY TRIM(seccion_nombre);
+        """
+        df = ejecutar_sql(query_simple)
+        if df is None or df.empty:
+            return {}
+
+        df["facultad_oficial"] = df["area"].apply(mapear_colaborador_academico)
+        df_mapeado = df.dropna(subset=["facultad_oficial"])
+        return df_mapeado.groupby("facultad_oficial")["total"].sum().to_dict()
+
+    except Exception as ex:
+        st.error(f"Error al consultar colaboradores: {ex}")
+        return {}
+
+@st.cache_data(ttl=300)
+def obtener_presupuesto_por_facultad(sede="Todas las Sedes"):
+    """Carga y calcula el Presupuesto Total ($ Disponible) filtrando estrictamente por Unidad y Subunidad."""
+    df = cargar_datos_presupuesto()
+    if df.empty:
+        return {}
+
+    try:
+        # 1. Filtro por Categoria == 'Académico'
+        if "Categoria" in df.columns:
+            df = df[
+                df["Categoria"]
+                .astype(str)
+                .str.upper()
+                .str.contains("ACAD", na=False)
+            ]
+
+        # 2. Filtro Tolerante por Sede (Maneja CONCEPCIÓN, CONCEOPCION, etc.)
+        if sede != "Todas las Sedes" and "Sede" in df.columns:
+            sede_buscada = normalizar_texto_sede(sede)
+
+            def coincide_sede(val_columna):
+                val_norm = normalizar_texto_sede(str(val_columna))
+                if "CONCEP" in sede_buscada or "CONCEO" in sede_buscada:
+                    return "CONCEP" in val_norm or "CONCEO" in val_norm
+                return sede_buscada in val_norm or val_norm in sede_buscada
+
+            df = df[df["Sede"].apply(coincide_sede)]
+
+        # 3. Detectar columna de Monto
+        posibles_columnas_monto = [
+            "PRES. TOTAL",
+            "PRESUPUESTO",
+            "MONTO",
+            "TOTAL",
+            "IMPORTE",
+            "DISPONIBLE",
+            "CREDITO",
+            "PRES_TOTAL",
+            "PRES TOTAL",
+        ]
+        col_monto = next(
+            (
+                c
+                for c in df.columns
+                if any(k in c.upper() for k in posibles_columnas_monto)
+            ),
+            None,
+        )
+
+        if not col_monto:
+            cols_num = df.select_dtypes(include=["number"]).columns
+            if len(cols_num) > 0:
+                col_monto = cols_num[-1]
+
+        if not col_monto:
+            return {}
+
+        # 4. Limpieza de montos
+        def limpiar_numero(val):
+            if pd.isna(val):
+                return 0.0
+            if isinstance(val, (int, float)):
+                return float(val)
+            s = str(val).replace("$", "").strip()
+            if "," in s and "." in s:
+                s = s.replace(".", "").replace(",", ".")
+            elif "," in s:
+                s = s.replace(",", ".")
+            try:
+                return float(s)
+            except:
+                return 0.0
+
+        df["monto_limpio"] = df[col_monto].apply(limpiar_numero)
+
+        # Detectar columnas exactas
+        col_unidad = next(
+            (
+                c
+                for c in df.columns
+                if "UNIDAD" in c.upper() and "SUB" not in c.upper()
+            ),
+            None,
+        )
+        col_subunidad = next(
+            (
+                c
+                for c in df.columns
+                if "SUB" in c.upper() and "UNIDAD" in c.upper()
+            ),
+            None,
+        )
+
+        # 5. Mapeo Quirúrgico
+        def extraer_unidad_oficial(row):
+            txt_unidad = (
+                str(row[col_unidad]).upper().strip()
+                if col_unidad and pd.notna(row[col_unidad])
+                else ""
+            )
+            txt_subunidad = (
+                str(row[col_subunidad]).upper().strip()
+                if col_subunidad and pd.notna(row[col_subunidad])
+                else ""
+            )
+
+            # CASO 1: Dpto. de Formación Humanística
+            # Solo si la subunidad es explícitamente Depto.Form.Hum.Crist. / Formación Humanística
+            if any(
+                k in txt_subunidad
+                for k in [
+                    "DEPTO.FORM",
+                    "HUM.CRIST",
+                    "FORM.HUM",
+                    "HUMANISTICA",
+                    "HUMANÍSTICA",
+                ]
+            ):
+                return "Dpto. de Formación Humanística"
+
+            # CASO 2: CEOP (Directo por columna Unidad)
+            if "CEOP" in txt_unidad or "CENTRO DE ESTUDIOS" in txt_unidad:
+                return "CEOP"
+
+            # CASO 3: Las demás Facultades
+            # Primero probamos clasificar por la columna Unidad
+            fac = normalizar_facultad(txt_unidad)
+            if fac:
+                return fac
+
+            return None
+
+        df["facultad_oficial"] = df.apply(extraer_unidad_oficial, axis=1)
+
+        # 6. Agrupar y sumar
+        df_academico = df.dropna(subset=["facultad_oficial"])
+        resumen = (
+            df_academico.groupby("facultad_oficial")["monto_limpio"]
+            .sum()
+            .to_dict()
+        )
+
+        return resumen
+
+    except Exception as e:
+        st.error(f"Error al procesar el presupuesto: {e}")
+        return {}
