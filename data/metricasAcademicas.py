@@ -1,8 +1,10 @@
 import pandas as pd
 import streamlit as st
 from utils.data_loader import cargar_datos_presupuesto
-from utils.conexion import ejecutar_sql
 import unicodedata
+
+RUTA_ALUMNOS_ACTIVOS = "data/alumnos_activos_facultad.parquet"
+RUTA_COLABORADORES = "data/colaboradores_area.parquet"
 
 def normalizar_texto_sede(texto):
     """Quita acentos, convierte a mayúsculas y limpia espacios para hacer comparaciones tolerantes."""
@@ -57,27 +59,13 @@ def normalizar_facultad(nombre):
 
 @st.cache_data(ttl=300)
 def obtener_alumnos_activos_por_facultad(sede="Todas las Sedes"):
-    """Devuelve el resumen por facultad y el total dinámico seguro considerando el filtro tolerante de sede."""
-    query = """
-        SELECT 
-            pos.sede,
-            pos.facultad,
-            COUNT(DISTINCT pos.id_alumno) AS activos
-        FROM (
-            SELECT sede, unidad_largo AS facultad, id_alumno FROM si_inscriptos_new
-            UNION
-            SELECT sede, unidad AS facultad, id_alumno FROM si_reinscriptos
-        ) pos
-        LEFT JOIN (
-            SELECT id_alumno FROM si_cancela_matricula
-            UNION
-            SELECT id_alumno FROM si_cancelados_reinscriptos
-        ) neg ON pos.id_alumno = neg.id_alumno
-        WHERE neg.id_alumno IS NULL
-        GROUP BY pos.sede, pos.facultad;
+    """Devuelve el resumen por facultad y el total dinámico seguro considerando el filtro tolerante de sede.
+
+    Lee el resultado pre-calculado por actualizador/actualizador.py (misma
+    consulta que antes se ejecutaba en vivo) en vez de conectarse a la base.
     """
     try:
-        df = ejecutar_sql(query)
+        df = pd.read_parquet(RUTA_ALUMNOS_ACTIVOS)
         if df is None or df.empty:
             return {}, 0
 
@@ -111,6 +99,12 @@ def obtener_alumnos_activos_por_facultad(sede="Todas las Sedes"):
 
         return resumen, total_real_absoluto
 
+    except FileNotFoundError:
+        st.error(
+            f"⚠️ No se encontró '{RUTA_ALUMNOS_ACTIVOS}'. Ejecutá"
+            " actualizador/actualizador.py para generar los datos."
+        )
+        return {}, 0
     except Exception as e:
         st.error(f"Error al procesar el cálculo dinámico de Alumnos: {e}")
         return {}, 0
@@ -151,64 +145,43 @@ def obtener_colaboradores_por_area(sede="Todas las Sedes"):
         # Áreas administrativas no académicas se ignoran
         return None
 
-    # Intentamos primero con la columna 'sede'
+    # Lee el resultado pre-calculado por actualizador/actualizador.py (el
+    # fallback con/sin columna 'sede' ya se resolvió al momento de exportar).
     try:
-        query = """
-            SELECT 
-                TRIM(seccion_nombre) AS area,
-                sede,
-                COUNT(*) AS total
-            FROM si_empleados
-            GROUP BY TRIM(seccion_nombre), sede;
-        """
-        df = ejecutar_sql(query)
-
-        if df is not None and not df.empty:
-            # Filtro por Sede si aplica
-            if sede != "Todas las Sedes" and "sede" in df.columns:
-                sede_buscada = normalizar_texto_sede(sede)
-
-                def coincide_sede(val_columna):
-                    val_norm = normalizar_texto_sede(str(val_columna))
-                    if "CONCEP" in sede_buscada or "CONCEO" in sede_buscada:
-                        return "CONCEP" in val_norm or "CONCEO" in val_norm
-                    return sede_buscada in val_norm or val_norm in sede_buscada
-
-                df = df[df["sede"].apply(coincide_sede)]
-
-            if not df.empty:
-                df["facultad_oficial"] = df["area"].apply(
-                    mapear_colaborador_academico
-                )
-                df_mapeado = df.dropna(subset=["facultad_oficial"])
-                return (
-                    df_mapeado.groupby("facultad_oficial")["total"]
-                    .sum()
-                    .to_dict()
-                )
-
-    except Exception:
-        pass  # Si la columna 'sede' no existe en la base, cae al bloque de abajo
-
-    # Fallback: Query simple sin columna 'sede'
-    try:
-        query_simple = """
-            SELECT 
-                TRIM(seccion_nombre) AS area,
-                COUNT(*) AS total
-            FROM si_empleados
-            GROUP BY TRIM(seccion_nombre);
-        """
-        df = ejecutar_sql(query_simple)
+        df = pd.read_parquet(RUTA_COLABORADORES)
         if df is None or df.empty:
+            return {}
+
+        if (
+            sede != "Todas las Sedes"
+            and "sede" in df.columns
+            and df["sede"].notna().any()
+        ):
+            sede_buscada = normalizar_texto_sede(sede)
+
+            def coincide_sede(val_columna):
+                val_norm = normalizar_texto_sede(str(val_columna))
+                if "CONCEP" in sede_buscada or "CONCEO" in sede_buscada:
+                    return "CONCEP" in val_norm or "CONCEO" in val_norm
+                return sede_buscada in val_norm or val_norm in sede_buscada
+
+            df = df[df["sede"].apply(coincide_sede)]
+
+        if df.empty:
             return {}
 
         df["facultad_oficial"] = df["area"].apply(mapear_colaborador_academico)
         df_mapeado = df.dropna(subset=["facultad_oficial"])
         return df_mapeado.groupby("facultad_oficial")["total"].sum().to_dict()
 
+    except FileNotFoundError:
+        st.error(
+            f"⚠️ No se encontró '{RUTA_COLABORADORES}'. Ejecutá"
+            " actualizador/actualizador.py para generar los datos."
+        )
+        return {}
     except Exception as ex:
-        st.error(f"Error al consultar colaboradores: {ex}")
+        st.error(f"Error al procesar colaboradores: {ex}")
         return {}
 
 @st.cache_data(ttl=300)
