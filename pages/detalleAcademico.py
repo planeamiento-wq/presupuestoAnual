@@ -91,12 +91,17 @@ def formatear_monto_completo(valor):
         return "$ 0"
 
 
-def obtener_paleta_dinamica(sede="Todas las Sedes"):
+def obtener_paleta_dinamica(sede="Todas las Sedes", mes="Anual (Ene-Dic)"):
     dict_alumnos, total_alumnos_real = obtener_alumnos_activos_por_facultad(
         sede
     )
     dict_colaboradores = obtener_colaboradores_por_area(sede)
-    dict_presupuesto = obtener_presupuesto_por_facultad(sede)
+    
+    # Si tu función obtener_presupuesto_por_facultad acepta mes, pasáselo:
+    try:
+        dict_presupuesto = obtener_presupuesto_por_facultad(sede, mes=mes)
+    except TypeError:
+        dict_presupuesto = obtener_presupuesto_por_facultad(sede)
 
     paleta_dinamica = {}
 
@@ -167,7 +172,6 @@ def renderizar_kpis_superiores(datos_unidad, color_borde, color_texto):
 def renderizar_bloques_facultades(paleta_actual):
     """Genera columnas dinámicas aumentando tamaño de fuente y ocultando las facultades sin actividad en la sede."""
 
-    # Mapeo de nombres largos a nombres visibles
     nombres_visibles = {
         "Facultad de Economía y Administración": "Economía y Adm.",
         "Facultad de Ciencias Jurídicas": "Ciencias Jurídicas",
@@ -178,7 +182,6 @@ def renderizar_bloques_facultades(paleta_actual):
         "Dpto. de Formación Humanística": "Dpto. Form. Humanística",
     }
 
-    # 1. Filtramos solo las facultades que tienen presupuesto O alumnos en esta sede
     facultades_activas = []
     for fac, config in PALETA_FACULTADES_BASE.items():
         if fac == "Todas las Facultades":
@@ -188,7 +191,6 @@ def renderizar_bloques_facultades(paleta_actual):
         monto_str = datos.get("disp", "$ 0")
         alumnos_str = datos.get("alum", "0")
 
-        # Comprobamos si tiene datos reales (> 0)
         monto_valido = monto_str != "$ 0" and monto_str != "$ 0,00"
         alumnos_validos = alumnos_str != "0"
 
@@ -199,7 +201,6 @@ def renderizar_bloques_facultades(paleta_actual):
         st.info("No hay unidades académicas registradas para la sede seleccionada.")
         return
 
-    # 2. Generamos dinámicamente tantas columnas como facultades activas haya
     cols = st.columns(len(facultades_activas))
 
     def html_bloque(titulo, datos, config):
@@ -223,8 +224,8 @@ def renderizar_bloques_facultades(paleta_actual):
         with cols[i]:
             st.markdown(
                 html_bloque(titulo, datos, config), unsafe_allow_html=True
-
             )
+
 
 def renderizar_grafico_participacion(sede="Todas las Sedes"):
     dict_presupuesto = obtener_presupuesto_por_facultad(sede)
@@ -254,7 +255,7 @@ def renderizar_grafico_participacion(sede="Todas las Sedes"):
 
     if total > 0:
         for fac, monto in dict_presupuesto.items():
-            if monto > 0:  # Oculta también del gráfico lo que tenga $0 en la sede
+            if monto > 0:
                 pct = round((monto / total) * 100, 1)
                 nombre = nombres_cortos.get(fac, fac)
                 color = colores_map.get(fac, "#e2e8f0")
@@ -301,7 +302,7 @@ def renderizar_grafico_participacion(sede="Todas las Sedes"):
 def cargar_vista_academica(
     seleccion_filtro, sede="Todas las Sedes", mes="Anual (Ene-Dic)"
 ):
-    paleta_dinamica = obtener_paleta_dinamica(sede=sede)
+    paleta_dinamica = obtener_paleta_dinamica(sede=sede, mes=mes)
     cfg = paleta_dinamica.get(
         seleccion_filtro, PALETA_FACULTADES_BASE["Todas las Facultades"]
     )
@@ -333,7 +334,7 @@ def cargar_vista_academica(
             """
             <div style="margin-bottom: 10px;">
                 <strong style="color: #005088; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    📊 Distribución Porcentual del Presupuesto Asignado
+                    Distribución Porcentual del Presupuesto Asignado
                 </strong>
             </div>
         """,

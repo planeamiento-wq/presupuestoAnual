@@ -177,7 +177,7 @@ def mostrar_resumen():
         return f'<span style="color: #dc3545; font-weight: bold;">{num_formateado}</span>'
 
     # =========================================================
-    # 3. INTERFAZ GRÁFICA DE KPIs ORIGINALES RESTABLECIDA
+    # 3. INTERFAZ GRÁFICA DE KPIs ORIGINALES 
     # =========================================================
     st.markdown("### Indicadores generales")
 

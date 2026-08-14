@@ -212,8 +212,10 @@ def obtener_colaboradores_por_area(sede="Todas las Sedes"):
         return {}
 
 @st.cache_data(ttl=300)
-def obtener_presupuesto_por_facultad(sede="Todas las Sedes"):
-    """Carga y calcula el Presupuesto Total ($ Disponible) filtrando estrictamente por Unidad y Subunidad."""
+def obtener_presupuesto_por_facultad(
+    sede="Todas las Sedes", mes="Anual (Ene-Dic)"
+):
+    """Carga y calcula el Presupuesto Total ($ Disponible) filtrando estrictamente por Unidad, Subunidad y Mes."""
     df = cargar_datos_presupuesto()
     if df.empty:
         return {}
@@ -239,6 +241,24 @@ def obtener_presupuesto_por_facultad(sede="Todas las Sedes"):
                 return sede_buscada in val_norm or val_norm in sede_buscada
 
             df = df[df["Sede"].apply(coincide_sede)]
+
+        # 2b. NUEVO: Filtro por Mes
+        if mes != "Anual (Ene-Dic)":
+            col_mes = next(
+                (
+                    c
+                    for c in df.columns
+                    if any(
+                        k in c.upper()
+                        for k in ["MES", "PERIODO", "FECHA", "MES_NOMBRE"]
+                    )
+                ),
+                None,
+            )
+            if col_mes:
+                df = df[
+                    df[col_mes].astype(str).str.upper() == str(mes).upper()
+                ]
 
         # 3. Detectar columna de Monto
         posibles_columnas_monto = [
