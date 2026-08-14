@@ -4,3 +4,6 @@ plotly
 openpyxl
 SQLAlchemy
 PyMySQL
+pyarrow
+python-dotenv
+mysql-connector-python
