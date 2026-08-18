@@ -5,6 +5,7 @@ import unicodedata
 
 RUTA_ALUMNOS_ACTIVOS = "data/alumnos_activos_facultad.parquet"
 RUTA_COLABORADORES = "data/colaboradores_area.parquet"
+RUTA_DOCENTES = "data/docentes_resumen.parquet"
 
 def normalizar_texto_sede(texto):
     """Quita acentos, convierte a mayúsculas y limpia espacios para hacer comparaciones tolerantes."""
@@ -20,41 +21,49 @@ def normalizar_texto_sede(texto):
 
 
 def normalizar_facultad(nombre):
-    """Mapea las unidades académicas reconociendo a Formación Humanística como unidad propia."""
-    if not isinstance(nombre, str) or not nombre:
-        return None
+  """Mapea las unidades académicas reconociendo excepciones como CEOP y DFHC."""
+  if not isinstance(nombre, str) or not nombre:
+    return None
 
-    n = nombre.upper().strip()
+  n = nombre.upper().strip()
 
-    if (
-        "DEPTO.FORM" in n
-        or "FORM.HUM" in n
-        or "HUM.CRIST" in n
-        or "FORMAC" in n
-        or "CRISTIANA" in n
-        or "DFHC" in n
-    ) and not ("FAC. HUMANIDADES" in n or "FACULTAD DE HUMANIDADES" in n):
-        return "Dpto. de Formación Humanística"
-    elif "CEOP" in n or "CENTRO DE ESTUDIOS" in n:
-        return "CEOP"
-    elif "ECON" in n or "ADM" in n or "FAC. ECON" in n:
-        return "Facultad de Economía y Administración"
-    elif (
-        "JURID" in n
-        or "POLIT" in n
-        or "SOC" in n
-        or "DERECHO" in n
-        or "FAC. CS JURID" in n
-    ):
-        return "Facultad de Ciencias Jurídicas"
-    elif "INGENIER" in n or "INGENIÉR" in n or "FAC. INGENIERIA" in n:
-        return "Facultad de Ingeniería"
-    elif "SALUD" in n or "MEDICIN" in n or "FAC. CS. SALUD" in n:
-        return "Facultad de Ciencias de la Salud"
-    elif "HUMANID" in n or "FILOSOF" in n or "TEOLOG" in n:
-        return "Facultad de Humanidades"
-    else:
-        return None
+  # Excepciones específicas según la base de datos
+  if (
+      "FILOSOF" in n or "TEOLOG" in n or "CEOP" in n or "CENTRO DE ESTUDIOS" in n
+  ):
+    return "CEOP"
+  elif (
+      "DFHC" in n
+      or "DEPTO.FORM" in n
+      or "FORM.HUM" in n
+      or "HUM.CRIST" in n
+      or "FORMAC" in n
+      or "CRISTIANA" in n
+  ) and not (
+      "HUMAN." in n or "FAC. HUMANIDADES" in n or "FACULTAD DE HUMANIDADES" in n
+  ):
+    return "Dpto. de Formación Humanística"
+  elif "ECON" in n or "ADM" in n or "FAC. ECON" in n:
+    return "Facultad de Economía y Administración"
+  elif (
+      "JURID" in n
+      or "JPYS" in n
+      or "POLIT" in n
+      or "SOC" in n
+      or "DERECHO" in n
+      or "FAC. CS JURID" in n
+  ):
+    return "Facultad de Ciencias Jurídicas"
+  elif (
+      "INGENIER" in n or "INGENIÉR" in n or "INGENIE." in n or "FAC. INGENIERIA" in n
+  ):
+    return "Facultad de Ingeniería"
+  elif "SALUD" in n or "MEDICIN" in n or "FAC. CS. SALUD" in n:
+    return "Facultad de Ciencias de la Salud"
+  elif "HUMAN." in n or "HUMANID" in n:
+    return "Facultad de Humanidades"
+  else:
+    return None
 
 
 @st.cache_data(ttl=300)
@@ -352,3 +361,74 @@ def obtener_presupuesto_por_facultad(
     except Exception as e:
         st.error(f"Error al procesar el presupuesto: {e}")
         return {}
+
+@st.cache_data(ttl=300)
+def obtener_metricas_docentes(sede="Todas las Sedes"):
+    """Calcula docentes únicos globales, total de horas y desglose formateado por facultad."""
+    try:
+        df = pd.read_parquet(RUTA_DOCENTES)
+        if df is None or df.empty:
+            return {}, "0", "0"
+
+        # Filtro de sede si la columna estuviese presente
+        if (
+            sede != "Todas las Sedes"
+            and "sede" in df.columns
+            and df["sede"].notna().any()
+        ):
+            sede_buscada = normalizar_texto_sede(sede)
+
+            def coincide_sede(val_columna):
+                val_norm = normalizar_texto_sede(str(val_columna))
+                if "CONCEP" in sede_buscada or "CONCEO" in sede_buscada:
+                    return "CONCEP" in val_norm or "CONCEO" in val_norm
+                return sede_buscada in val_norm or val_norm in sede_buscada
+
+            df = df[df["sede"].apply(coincide_sede)]
+
+        if df.empty:
+            return {}, "0", "0"
+
+        # 1. Totales Globales
+        total_docentes_unicos = df["id_docente"].nunique()
+        total_horas = df["horas_docente"].sum()
+
+        # 2. Mapeo usando la función común normalizar_facultad
+        df["facultad_oficial"] = df["unidad"].apply(normalizar_facultad)
+        df_mapeado = df.dropna(subset=["facultad_oficial"])
+
+        # Agrupaciones por facultad
+        docentes_por_facultad = (
+            df_mapeado.groupby("facultad_oficial")["id_docente"]
+            .nunique()
+            .to_dict()
+        )
+        horas_por_facultad = (
+            df_mapeado.groupby("facultad_oficial")["horas_docente"]
+            .sum()
+            .to_dict()
+        )
+
+        # Formateo de strings con puntos separadores de miles
+        dict_docentes = {}
+        for fac, cant in docentes_por_facultad.items():
+            hs = horas_por_facultad.get(fac, 0)
+            dict_docentes[fac] = {
+                "doc": f"{cant:,}".replace(",", "."),
+                "hs": f"{hs:,.0f}".replace(",", "."),
+            }
+
+        doc_total_str = f"{total_docentes_unicos:,}".replace(",", ".")
+        hs_total_str = f"{total_horas:,.0f}".replace(",", ".")
+
+        return dict_docentes, doc_total_str, hs_total_str
+
+    except FileNotFoundError:
+        st.error(
+            f"⚠️ No se encontró '{RUTA_DOCENTES}'. Ejecutá"
+            " actualizador/actualizador.py para generar los datos."
+        )
+        return {}, "0", "0"
+    except Exception as e:
+        st.error(f"Error al procesar las métricas de docentes: {e}")
+        return {}, "0", "0"

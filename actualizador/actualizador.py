@@ -44,6 +44,15 @@ QUERIES = {
         WHERE neg.id_alumno IS NULL
         GROUP BY pos.sede, pos.facultad
     """,
+    "docentes_resumen.parquet": """
+        SELECT 
+            unidad,
+            id_docente,
+            SUM(horas) AS horas_docente
+        FROM si_desig_doc
+        WHERE id_estado = 1
+        GROUP BY unidad, id_docente
+    """,
 }
 
 # La consulta de colaboradores por área tiene una variante con "sede" y un
