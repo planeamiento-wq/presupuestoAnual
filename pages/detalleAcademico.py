@@ -6,8 +6,9 @@ from components.detalleGastos import renderizar_seccion_detalle_gastos
 from data.metricasAcademicas import (
     obtener_alumnos_activos_por_facultad,
     obtener_colaboradores_por_area,
-    obtener_presupuesto_por_facultad,
     obtener_metricas_docentes,
+    obtener_presupuesto_por_facultad,
+    obtener_detalle_gastos_UA,
 )
 
 PALETA_FACULTADES_BASE = {
@@ -98,7 +99,7 @@ def obtener_paleta_dinamica(sede="Todas las Sedes", mes="Anual (Ene-Dic)"):
     )
     dict_colaboradores = obtener_colaboradores_por_area(sede)
 
-    # 👈 Traemos las métricas reales del archivo .parquet
+    # Traemos las métricas reales del archivo .parquet
     dict_docentes, total_doc_str, total_hs_str = obtener_metricas_docentes(
         sede
     )
@@ -123,7 +124,7 @@ def obtener_paleta_dinamica(sede="Todas las Sedes", mes="Anual (Ene-Dic)"):
             paleta_dinamica[fac]["disp"] = formatear_monto_completo(
                 total_presupuesto
             )
-            # 👈 Asignamos los totales globales reales
+            # Asignamos los totales globales reales
             paleta_dinamica[fac]["doc"] = total_doc_str
             paleta_dinamica[fac]["hs"] = total_hs_str
         else:
@@ -131,7 +132,7 @@ def obtener_paleta_dinamica(sede="Todas las Sedes", mes="Anual (Ene-Dic)"):
             val_adm = dict_colaboradores.get(fac, 0)
             val_pres = dict_presupuesto.get(fac, 0)
 
-            # 👈 Datos específicos para la tarjeta de cada facultad
+            # Datos específicos para la tarjeta de cada facultad
             datos_doc_fac = dict_docentes.get(fac, {"doc": "0", "hs": "0"})
 
             paleta_dinamica[fac]["alum"] = f"{val_alum:,.0f}".replace(
@@ -212,7 +213,9 @@ def renderizar_bloques_facultades(paleta_actual):
             facultades_activas.append((fac, datos, config))
 
     if not facultades_activas:
-        st.info("No hay unidades académicas registradas para la sede seleccionada.")
+        st.info(
+            "No hay unidades académicas registradas para la sede seleccionada."
+        )
         return
 
     cols = st.columns(len(facultades_activas))
@@ -300,13 +303,11 @@ def renderizar_grafico_participacion(sede="Todas las Sedes"):
         )
     )
 
-    max_pct = max(porcentajes) if porcentajes else 35
-
     fig.update_layout(
         showlegend=False,
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        margin=dict(r=50, t=20, b=30, l=10),  # Margen derecho ampliado a 60
+        margin=dict(r=50, t=20, b=30, l=10),
         height=max(200, len(unidades) * 45),
         xaxis=dict(range=[0, 35]),
         yaxis=dict(tickfont=dict(size=13, color="#475569")),
@@ -337,7 +338,22 @@ def cargar_vista_academica(
 
     if seleccion_filtro != "Todas las Facultades":
         renderizar_kpis_superiores(cfg, cfg["border"], cfg["texto"])
-        renderizar_seccion_detalle_gastos(seleccion_filtro, cfg)
+
+        # 1. Obtenemos los datos calculados desde el Excel
+        labels_p, val_p, cat_f, val_f = obtener_detalle_gastos_UA(
+            seleccion_filtro, sede=sede, mes=mes
+        )
+
+        # 2. Inyectamos los datos reales al componente gráfico
+        renderizar_seccion_detalle_gastos(
+            seleccion_filtro,
+            cfg,
+            labels_p=labels_p,
+            valores_p=val_p,
+            cat_f=cat_f,
+            val_f=val_f,
+        )
+
         st.markdown("<br>", unsafe_allow_html=True)
     else:
         renderizar_kpis_superiores(cfg, "#005088", "#005088")
@@ -345,44 +361,42 @@ def cargar_vista_academica(
 
         renderizar_bloques_facultades(paleta_dinamica)
 
-        # 1. TÍTULO DEL GRÁFICO (Ubicado ANTES de renderizar el gráfico)
-    st.markdown(
-        """
-        <div style="margin-top: 25px; margin-bottom: 15px;">
-            <strong style="color: #005088; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
-                Distribución Porcentual del Presupuesto Asignado
-            </strong>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        # 1. TÍTULO DEL GRÁFICO (SOLO para "Todas las Facultades")
+        st.markdown(
+            """
+            <div style="margin-top: 25px; margin-bottom: 15px;">
+                <strong style="color: #005088; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Distribución Porcentual del Presupuesto Asignado
+                </strong>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    # 2. GRÁFICO DE BARRAS
-    renderizar_grafico_participacion(sede=sede)
+        # 2. GRÁFICO DE BARRAS (SOLO para "Todas las Facultades")
+        renderizar_grafico_participacion(sede=sede)
 
-    # 3. NOTAS EN EL PIE DE PÁGINA (Footer fluido horizontal debajo del gráfico)
-    st.markdown(
-        """
-        <div style="
-            margin-top: 30px; 
-            padding-top: 12px; 
-            border-top: 1px solid #e2e8f0; 
-            display: flex; 
-            gap: 30px; 
-            justify-content: flex-end;
-            align-items: center;
-        ">
-            <p style="font-size: 11px; color: #64748b; margin: 0;">
-                <strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Total de Docentes:</strong> 
-                Contabiliza docentes únicos. La suma por unidad puede ser mayor por múltiples cargos.
-            </p>
-            <p style="font-size: 11px; color: #64748b; margin: 0;">
-                <strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Datos y Presupuesto:</strong> 
-                Sincronizado con bases locales. Consolida rubros estrictamente académicos.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-        
+        # 3. NOTAS EN EL PIE DE PÁGINA (SOLO para "Todas las Facultades")
+        st.markdown(
+            """
+            <div style="
+                margin-top: 30px; 
+                padding-top: 12px; 
+                border-top: 1px solid #e2e8f0; 
+                display: flex; 
+                gap: 30px; 
+                justify-content: flex-end;
+                align-items: center;
+            ">
+                <p style="font-size: 11px; color: #64748b; margin: 0;">
+                    <strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Total de Docentes:</strong> 
+                    Contabiliza docentes únicos. La suma por unidad puede ser mayor por múltiples cargos.
+                </p>
+                <p style="font-size: 11px; color: #64748b; margin: 0;">
+                    <strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Datos y Presupuesto:</strong> 
+                    Sincronizado con bases locales. Consolida rubros estrictamente académicos.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )

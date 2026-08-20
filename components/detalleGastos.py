@@ -37,20 +37,30 @@ def generar_degrade_pastel_seguro(hex_base, cantidad=4):
         return ["#CBD5E1", "#E2E8F0", "#F1F5F9", "#F8FAFC"][:cantidad]
 
 
-def renderizar_seccion_detalle_gastos(nombre_unidad, config_colores):
-    """Componente agnóstico definitivo. Respeta la identidad pastel única de la
-
-    unidad seleccionada tanto en barras como en porciones circulares.
-    """
+def renderizar_seccion_detalle_gastos(
+    nombre_unidad,
+    config_colores,
+    labels_p=None,
+    valores_p=None,
+    cat_f=None,
+    val_f=None,
+):
     color_texto = config_colores.get("texto", "#005088")
     color_pastel_base = config_colores.get("chip_bg", "#C7E8F7")
+
+    # Contingencia si no hay datos disponibles
+    if not labels_p or not valores_p:
+        labels_p, valores_p = ["Sin Datos de Personal"], [1]
+
+    if not cat_f or not val_f:
+        cat_f, val_f = ["Sin Gastos Registrados"], [0]
 
     st.markdown("---")
     st.markdown(
         f"""
         <div style="margin-top: 10px; margin-bottom: 25px;">
             <h4 style="color: #005088; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
-                📋 Detalles de Gastos: <span style="color: {color_texto}; font-weight: 800;">{nombre_unidad}</span>
+                • Detalles de Gastos: <span style="color: {color_texto}; font-weight: 800;">{nombre_unidad}</span>
             </h4>
         </div>
     """,
@@ -59,26 +69,17 @@ def renderizar_seccion_detalle_gastos(nombre_unidad, config_colores):
 
     g_col1, g_col2 = st.columns([1.1, 1.2])
 
-    # Generamos la paleta de la torta partiendo ÚNICAMENTE del pastel de la tarjeta
+    # Adaptación dinámica del degradé a la cantidad real de rubros de personal
     colores_pie_armonicos = generar_degrade_pastel_seguro(
-        color_pastel_base, cantidad=4
+        color_pastel_base, cantidad=len(labels_p)
     )
 
     # --- GRÁFICO 1: PERSONAL (CIRCULAR) ---
     with g_col1:
         st.markdown(
-            "<p style='font-weight: 700; color: #475569; text-align: center;"
-            " margin-bottom: 15px;'>Distribución: Gastos de Personal</p>",
+            "<p style='font-weight: 700; color: #475569; text-align: center; margin-bottom: 15px;'>Distribución: Gastos de Personal</p>",
             unsafe_allow_html=True,
         )
-
-        labels_p = [
-            "Docentes Ordinarios",
-            "Docentes Interinos",
-            "Autoridades",
-            "Adscritos / No Doc.",
-        ]
-        valores_p = [45, 30, 15, 10]
 
         fig_pie = go.Figure(
             go.Pie(
@@ -92,7 +93,7 @@ def renderizar_seccion_detalle_gastos(nombre_unidad, config_colores):
                 textinfo="percent",
                 textposition="inside",
                 textfont=dict(size=13, weight="bold", color="#1e293b"),
-                hoverinfo="label+percent",
+                hoverinfo="label+percent+value",
             )
         )
 
@@ -113,45 +114,29 @@ def renderizar_seccion_detalle_gastos(nombre_unidad, config_colores):
             fig_pie, width="stretch", config={"displayModeBar": False}
         )
 
-    # --- GRÁFICO 2: FUNCIONAMIENTO (BARRAS CON MONTOS COMPLETOS) ---
+    # --- GRÁFICO 2: FUNCIONAMIENTO (BARRAS) ---
     with g_col2:
         st.markdown(
-            "<p style='font-weight: 700; color: #475569; text-align: center;"
-            " margin-bottom: 15px;'>Desglose: Gastos de Funcionamiento</p>",
+            "<p style='font-weight: 700; color: #475569; text-align: center; margin-bottom: 15px;'>Desglose: Gastos de Funcionamiento</p>",
             unsafe_allow_html=True,
         )
 
-        cat_f = [
-            "Servicios Básicos",
-            "Insumos Laboratorio",
-            "Licencias / Software",
-            "Mantenimiento",
-            "Viáticos y Extensión",
-        ]
-
-        # Montos completos reales (en pesos)
-        val_f = [520000, 380000, 290000, 150000, 90000]
-
-        # Formateo de cada valor a pesos completos con punto de miles ($ 520.000)
         textos_montos_completos = [
             f"$ {v:,.0f}".replace(",", ".") for v in val_f
         ]
-
-        # Clavamos el mismo pastel exacto para que el bloque de barras sea limpio y uniforme
-        colores_barras = [color_pastel_base] * 5
+        colores_barras = [color_pastel_base] * len(cat_f)
 
         fig_bar = go.Figure(
             go.Bar(
                 x=val_f,
                 y=cat_f,
                 orientation="h",
-                text=textos_montos_completos,  # Muestra los montos completos
-                textposition="outside",
+                text=textos_montos_completos,
+                textposition="auto",  # <--- Plotly decide si va adentro o afuera según el tamaño de la barra
+                insidetextanchor="end",
                 textfont=dict(size=11, weight="bold", color="#1e293b"),
                 marker=dict(color=colores_barras, line=dict(width=0)),
-                hovertemplate=(
-                    "<b>%{y}</b><br>Gasto: %{text}<extra></extra>"
-                ),
+                hovertemplate="<b>%{y}</b><br>Gasto: %{text}<extra></extra>",
             )
         )
 
@@ -159,13 +144,18 @@ def renderizar_seccion_detalle_gastos(nombre_unidad, config_colores):
             height=340,
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
-            margin=dict(t=10, b=10, l=10, r=60),  # Margen derecho ampliado para dar espacio al número completo
-            xaxis=dict(showgrid=True, gridcolor="#f1f5f9", title=None),
+            margin=dict(t=10, b=10, l=10, r=80),  # <--- r=80 da margen a la derecha si algún texto sale de la barra
+            xaxis=dict(
+                showgrid=True,
+                gridcolor="#f1f5f9",
+                title=None,
+                range=[0, max(val_f) * 1.15] if val_f else None,  # <--- Extiende el eje X un 15% para dar espacio
+            ),
             yaxis=dict(
-                autorange="reversed",
-                tickfont=dict(size=11, color="#475569"),
+                autorange="reversed", tickfont=dict(size=11, color="#475569")
             ),
         )
+
         st.plotly_chart(
             fig_bar, width="stretch", config={"displayModeBar": False}
         )

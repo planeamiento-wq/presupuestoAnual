@@ -215,7 +215,7 @@ def mostrar_resumen():
     graf1, graf2 = st.columns(2)
 
     with graf1:
-        st.info("📋 Consolidado UNSTA")
+        st.info("Consolidado UNSTA")
         #abrir_card("📋 Consolidado UNSTA")
         
         # 1. Calculamos los márgenes intermedios de las 3 etapas como pide el PPT
@@ -253,7 +253,7 @@ def mostrar_resumen():
         st.empty()
 
     with graf2:
-        st.info("📊 Mayores Conceptos Consolidados")
+        st.info("Mayores Conceptos Consolidados")
         # Cambiamos el nombre al que realmente tiene la función internamente
         crear_grafico_mayores_conceptos(paquete_datos)
         st.empty()

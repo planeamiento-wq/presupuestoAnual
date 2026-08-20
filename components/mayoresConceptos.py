@@ -59,7 +59,7 @@ def crear_grafico_mayores_conceptos(datos_calculados):
         showlegend=True,
         legend_title_text="",
         legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
-        margin=dict(l=20, r=40, t=10, b=10),
+        margin=dict(l=20, r=120, t=10, b=10),
         xaxis=dict(showgrid=False, visible=False), # Ocultamos el eje X para que no sature
         yaxis=dict(showgrid=False, title=""),
         plot_bgcolor="rgba(0,0,0,0)",
@@ -68,9 +68,9 @@ def crear_grafico_mayores_conceptos(datos_calculados):
     )
 
     fig.update_traces(
-        textposition="outside", # Fuerza los números afuera de las barras
-        textfont_size=11,
-        cliponaxis=False
+        textposition = "auto", 
+        textfont_size = 11,
+        cliponaxis = False
     )
 
     st.plotly_chart(fig, use_container_width=True)

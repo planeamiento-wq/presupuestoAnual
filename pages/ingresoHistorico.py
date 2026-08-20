@@ -122,9 +122,9 @@ def mostrar_historico():
     with col_k1:
         st.markdown(
             f"""
-            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 6px solid {color_p_1}; box-shadow: 0px 4px 12px rgba(0,0,0,0.03);">
+            <div style="background: white; padding: 10px; border-radius: 12px; border-left: 6px solid {color_p_1}; box-shadow: 0px 4px 12px rgba(0,0,0,0.03);">
                 <div style="font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">INGRESANTES {anio_1}</div>
-                <div style="font-size: 32px; font-weight: bold; color: #1e293b; margin-top: 5px;">{kpi_1}</div>
+                <div style="font-size: 28px; font-weight: bold; color: #1e293b; margin-top: 5px;">{kpi_1}</div>
             </div>
         """,
             unsafe_allow_html=True,
@@ -133,9 +133,9 @@ def mostrar_historico():
     with col_k2:
         st.markdown(
             f"""
-            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 6px solid {color_p_2}; box-shadow: 0px 4px 12px rgba(0,0,0,0.03);">
+            <div style="background: white; padding: 10px; border-radius: 12px; border-left: 6px solid {color_p_2}; box-shadow: 0px 4px 12px rgba(0,0,0,0.03);">
                 <div style="font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">INGRESANTES {anio_2}</div>
-                <div style="font-size: 32px; font-weight: bold; color: #1e293b; margin-top: 5px;">{kpi_2}</div>
+                <div style="font-size: 28px; font-weight: bold; color: #1e293b; margin-top: 5px;">{kpi_2}</div>
             </div>
         """,
             unsafe_allow_html=True,
@@ -144,9 +144,9 @@ def mostrar_historico():
     with col_k3:
         st.markdown(
             f"""
-            <div style="background: white; padding: 20px; border-radius: 12px; border-left: 6px solid {color_p_3}; box-shadow: 0px 4px 12px rgba(0,0,0,0.03);">
+            <div style="background: white; padding: 10px; border-radius: 12px; border-left: 6px solid {color_p_3}; box-shadow: 0px 4px 12px rgba(0,0,0,0.03);">
                 <div style="font-size: 11px; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">INGRESANTES {anio_3}</div>
-                <div style="font-size: 32px; font-weight: bold; color: #1e293b; margin-top: 5px;">{kpi_3}</div>
+                <div style="font-size: 28px; font-weight: bold; color: #1e293b; margin-top: 5px;">{kpi_3}</div>
             </div>
         """,
             unsafe_allow_html=True,

@@ -432,3 +432,189 @@ def obtener_metricas_docentes(sede="Todas las Sedes"):
     except Exception as e:
         st.error(f"Error al procesar las métricas de docentes: {e}")
         return {}, "0", "0"
+
+@st.cache_data(ttl=300)
+def obtener_detalle_gastos_UA(
+    nombre_unidad_app, sede="Todas las Sedes", mes="Anual (Ene-Dic)"
+):
+    """Filtra los gastos de personal y funcionamiento de una unidad específica
+
+    usando la normalización existente.
+    """
+    df = cargar_datos_presupuesto()
+    if df.empty:
+        return [], [], [], []
+
+    try:
+        # 0. Limpieza de espacios en los nombres de las columnas
+        df.columns = df.columns.str.strip()
+
+        # 1. Filtro por Categoria == 'Académico'
+        if "Categoria" in df.columns:
+            df = df[
+                df["Categoria"]
+                .astype(str)
+                .str.upper()
+                .str.contains("ACAD", na=False)
+            ]
+
+        # 2. Filtro Tolerante por Sede
+        if sede != "Todas las Sedes" and "Sede" in df.columns:
+            sede_buscada = normalizar_texto_sede(sede)
+
+            def coincide_sede(val_columna):
+                val_norm = normalizar_texto_sede(str(val_columna))
+                if "CONCEP" in sede_buscada or "CONCEO" in sede_buscada:
+                    return "CONCEP" in val_norm or "CONCEO" in val_norm
+                return sede_buscada in val_norm or val_norm in sede_buscada
+
+            df = df[df["Sede"].apply(coincide_sede)]
+
+        # 3. Mapeo de Unidad y filtro especial de Subunidad
+        col_unidad = next(
+            (
+                c
+                for c in df.columns
+                if "UNIDAD" in c.upper() and "SUB" not in c.upper()
+            ),
+            None,
+        )
+        col_subunidad = next(
+            (
+                c
+                for c in df.columns
+                if "SUB" in c.upper() and "UNIDAD" in c.upper()
+            ),
+            None,
+        )
+
+        def extraer_unidad_oficial(row):
+            txt_unidad = (
+                str(row[col_unidad]).upper().strip()
+                if col_unidad and pd.notna(row[col_unidad])
+                else ""
+            )
+            txt_subunidad = (
+                str(row[col_subunidad]).upper().strip()
+                if col_subunidad and pd.notna(row[col_subunidad])
+                else ""
+            )
+
+            # Filtro fino para Dpto. de Formación Humanística
+            if any(
+                k in txt_subunidad
+                for k in [
+                    "DEPTO.FORM",
+                    "HUM.CRIST",
+                    "FORM.HUM",
+                    "HUMANISTICA",
+                    "HUMANÍSTICA",
+                ]
+            ):
+                return "Dpto. de Formación Humanística"
+
+            if "CEOP" in txt_unidad or "CENTRO DE ESTUDIOS" in txt_unidad:
+                return "CEOP"
+
+            return normalizar_facultad(txt_unidad)
+
+        df["facultad_oficial"] = df.apply(extraer_unidad_oficial, axis=1)
+
+        # Filtramos estrictamente por la unidad seleccionada en la App
+        df_unidad = df[df["facultad_oficial"] == nombre_unidad_app].copy()
+        if df_unidad.empty:
+            return [], [], [], []
+
+        # 4. Determinar columna de monto según el mes seleccionado
+        col_monto = "PRES. TOTAL"
+        if mes != "Anual (Ene-Dic)":
+            col_encontrada = next(
+                (
+                    c
+                    for c in df_unidad.columns
+                    if c.lower().strip() == mes.lower().strip()
+                ),
+                None,
+            )
+            if col_encontrada:
+                col_monto = col_encontrada
+
+        # Clean-up numérico
+        def limpiar_monto(val):
+            if pd.isna(val):
+                return 0.0
+            if isinstance(val, (int, float)):
+                return float(val)
+            s = str(val).replace("$", "").strip()
+            if "," in s and "." in s:
+                s = s.replace(".", "").replace(",", ".")
+            elif "," in s:
+                s = s.replace(",", ".")
+            try:
+                return float(s)
+            except Exception:
+                return 0.0
+
+        df_unidad["monto_limpio"] = df_unidad[col_monto].apply(limpiar_monto)
+
+        # --- DETECCIÓN CORRECTA DE LA COLUMNA DE TIPO DE GASTO ---
+        # Priorizamos 'Descripción tipo' / 'DESCRIPCION' para no confundir con la columna 'Tipo' (EGRESOS/INGRESOS)
+        col_tipo = next(
+            (
+                c
+                for c in df_unidad.columns
+                if "DESC" in c.upper() and "TIPO" in c.upper()
+            ),
+            None,
+        )
+        if not col_tipo:
+            col_tipo = next(
+                (c for c in df_unidad.columns if "TIPO" in c.upper()),
+                "Descripción tipo",
+            )
+
+        col_concepto = next(
+            (c for c in df_unidad.columns if "CONCEPTO" in c.upper()),
+            "Concepto",
+        )
+
+        # --- A. GASTOS DE PERSONAL (Dona) ---
+        df_personal = df_unidad[
+            df_unidad[col_tipo]
+            .astype(str)
+            .str.upper()
+            .str.contains("PERS", na=False)
+        ]
+        grp_personal = (
+            df_personal.groupby(col_concepto)["monto_limpio"]
+            .sum()
+            .sort_values(ascending=False)
+        )
+        grp_personal = grp_personal[grp_personal > 0]
+
+        labels_personal = grp_personal.index.tolist()
+        valores_personal = grp_personal.values.tolist()
+
+        # --- B. GASTOS DE FUNCIONAMIENTO (Barras) ---
+        df_func = df_unidad[
+            df_unidad[col_tipo]
+            .astype(str)
+            .str.upper()
+            .str.contains("FUNC", na=False)
+        ]
+        grp_func = (
+            df_func.groupby(col_concepto)["monto_limpio"]
+            .sum()
+            .sort_values(ascending=False)
+            .head(5)
+        )
+        grp_func = grp_func[grp_func > 0]
+
+        cat_func = grp_func.index.tolist()
+        val_func = grp_func.values.tolist()
+
+        return labels_personal, valores_personal, cat_func, val_func
+
+    except Exception as e:
+        st.error(f"Error al obtener el detalle de gastos de la unidad: {e}")
+        return [], [], [], []

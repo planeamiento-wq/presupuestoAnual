@@ -1,6 +1,9 @@
 import streamlit as st
 from components.header import crear_header
 from components.footer import crear_footer
+from data.metricasAdministrativas import (
+    obtener_lista_areas_administrativas,
+)
 
 # Importamos las vistas y la estructura de datos desde los módulos
 from pages.detalleAcademico import cargar_vista_academica, PALETA_FACULTADES
@@ -30,8 +33,8 @@ def mostrar_detalle():
             opciones = list(PALETA_FACULTADES.keys())
             seleccion_filtro = st.selectbox("Seleccione Unidad Académica:", opciones)
         else:
-            opciones = ["Todas las Áreas", "Adm. General", "Alumnos", "Tesorería"]
-            seleccion_filtro = st.selectbox("Filtrar por Área / Dirección de Gasto:", opciones)
+            opciones = obtener_lista_areas_administrativas()
+            seleccion_filtro = st.selectbox("Filtrar por Área / Servicio:", opciones)
             
     with f_col3:
         # Filtro independiente de Sede
