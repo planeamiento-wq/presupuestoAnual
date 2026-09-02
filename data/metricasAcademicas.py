@@ -221,44 +221,41 @@ def obtener_presupuesto_por_facultad(
 
             df = df[df["Sede"].apply(coincide_sede)]
 
-        # 2b. NUEVO: Filtro por Mes
+        # 3. Detectar columna de Monto
+        # Si se eligió un mes específico, la columna a sumar es la de ese
+        # mes (marzo, abril, ...); el archivo trae un mes por columna, no
+        # una columna "Mes" que filtre filas.
+        col_monto = None
         if mes != "Anual (Ene-Dic)":
-            col_mes = next(
+            col_monto = next(
                 (
                     c
                     for c in df.columns
-                    if any(
-                        k in c.upper()
-                        for k in ["MES", "PERIODO", "FECHA", "MES_NOMBRE"]
-                    )
+                    if c.lower().strip() == str(mes).lower().strip()
                 ),
                 None,
             )
-            if col_mes:
-                df = df[
-                    df[col_mes].astype(str).str.upper() == str(mes).upper()
-                ]
 
-        # 3. Detectar columna de Monto
-        posibles_columnas_monto = [
-            "PRES. TOTAL",
-            "PRESUPUESTO",
-            "MONTO",
-            "TOTAL",
-            "IMPORTE",
-            "DISPONIBLE",
-            "CREDITO",
-            "PRES_TOTAL",
-            "PRES TOTAL",
-        ]
-        col_monto = next(
-            (
-                c
-                for c in df.columns
-                if any(k in c.upper() for k in posibles_columnas_monto)
-            ),
-            None,
-        )
+        if not col_monto:
+            posibles_columnas_monto = [
+                "PRES. TOTAL",
+                "PRESUPUESTO",
+                "MONTO",
+                "TOTAL",
+                "IMPORTE",
+                "DISPONIBLE",
+                "CREDITO",
+                "PRES_TOTAL",
+                "PRES TOTAL",
+            ]
+            col_monto = next(
+                (
+                    c
+                    for c in df.columns
+                    if any(k in c.upper() for k in posibles_columnas_monto)
+                ),
+                None,
+            )
 
         if not col_monto:
             cols_num = df.select_dtypes(include=["number"]).columns
