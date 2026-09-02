@@ -132,9 +132,10 @@ def renderizar_seccion_detalle_gastos(
                 y=cat_f,
                 orientation="h",
                 text=textos_montos_completos,
-                textposition="auto",  # <--- Plotly decide si va adentro o afuera según el tamaño de la barra
+                textposition="auto",     # <--- Forzás a que SIEMPRE vaya adentro
+                #textangle=0,               # <--- Forzás a que SIEMPRE quede horizontal
                 insidetextanchor="end",
-                textfont=dict(size=11, weight="bold", color="#1e293b"),
+                textfont=dict(size=12, weight="bold", color="#1e293b"),
                 marker=dict(color=colores_barras, line=dict(width=0)),
                 hovertemplate="<b>%{y}</b><br>Gasto: %{text}<extra></extra>",
             )

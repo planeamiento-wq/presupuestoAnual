@@ -12,11 +12,12 @@ def cargar_vista_administrativa(
     """Maneja el bloque administrativo con una paleta pastel corporativa integrada"""
 
     config_admin = {
+        "border": "#005088",
         "texto": "#005088",  # Azul UNSTA para tipografía principal
         "chip_bg": "#B9E1F7",  # Azul pastel institucional
     }
 
-    # CÁLCULO REAL DE KPIS DESDE EL EXCEL
+    # CÁLCULO REAL DE KPIS
     cant_colaboradores, presupuesto_total = calcular_kpis_administrativos(
         nombre_area=seleccion_filtro, sede=sede, mes=mes
     )
@@ -62,12 +63,20 @@ def cargar_vista_administrativa(
     # Bloque de auditoría o mensaje general
     if seleccion_filtro != "Todas las Áreas":
         st.markdown("<br>", unsafe_allow_html=True)
+        
+        # 1. Obtenemos los datos calculados del área administrativa
+        labels_p, val_p, cat_f, val_f = obtener_detalle_gastos_administrativo(
+            seleccion_filtro, sede=sede, mes=mes
+        )
+
+        # 2. Inyectamos los datos exactamente con el mismo formato que la vista académica
         renderizar_seccion_detalle_gastos(
-            nombre_unidad_o_area=seleccion_filtro,
-            config_estilo=config_admin,
-            sede=sede,
-            mes=mes,
-            fn_obtener_datos=obtener_detalle_gastos_administrativo,
+            seleccion_filtro,
+            config_admin,
+            labels_p=labels_p,
+            valores_p=val_p,
+            cat_f=cat_f,
+            val_f=val_f,
         )
     else:
         st.markdown("<br>", unsafe_allow_html=True)

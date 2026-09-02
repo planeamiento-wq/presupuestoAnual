@@ -1,10 +1,9 @@
 import pandas as pd
 import streamlit as st
-from utils.data_loader import cargar_datos_presupuesto
+from utils.data_loader import cargar_datos_presupuesto, cargar_datos_colaboradores
 import unicodedata
 
 RUTA_ALUMNOS_ACTIVOS = "data/alumnos_activos_facultad.parquet"
-RUTA_COLABORADORES = "data/colaboradores_area.parquet"
 RUTA_DOCENTES = "data/docentes_resumen.parquet"
 
 def normalizar_texto_sede(texto):
@@ -131,6 +130,8 @@ def obtener_colaboradores_por_area(sede="Todas las Sedes"):
         a = area_nombre.upper().strip()
 
         # Caso 1: Dpto. de Formación Humanística
+        # (cubre tanto las abreviaturas que traía la BD -DEPTO.FORM, HUM.CRIST-
+        # como el nombre completo tal cual figura en el Excel nominal)
         if any(
             k in a
             for k in [
@@ -139,6 +140,8 @@ def obtener_colaboradores_por_area(sede="Todas las Sedes"):
                 "HUM.CRIST",
                 "FORM.HUM",
                 "DEPTO.FORM",
+                "HUMANISTIC",
+                "HUMANÍSTIC",
             ]
         ):
             return "Dpto. de Formación Humanística"
@@ -154,10 +157,10 @@ def obtener_colaboradores_por_area(sede="Todas las Sedes"):
         # Áreas administrativas no académicas se ignoran
         return None
 
-    # Lee el resultado pre-calculado por actualizador/actualizador.py (el
-    # fallback con/sin columna 'sede' ya se resolvió al momento de exportar).
+    # Lee y agrupa el Excel nominal de colaboradores (utils/data_loader.py).
+    # Ya no depende de actualizador/actualizador.py ni de la BD en vivo.
     try:
-        df = pd.read_parquet(RUTA_COLABORADORES)
+        df = cargar_datos_colaboradores()
         if df is None or df.empty:
             return {}
 
@@ -183,12 +186,6 @@ def obtener_colaboradores_por_area(sede="Todas las Sedes"):
         df_mapeado = df.dropna(subset=["facultad_oficial"])
         return df_mapeado.groupby("facultad_oficial")["total"].sum().to_dict()
 
-    except FileNotFoundError:
-        st.error(
-            f"⚠️ No se encontró '{RUTA_COLABORADORES}'. Ejecutá"
-            " actualizador/actualizador.py para generar los datos."
-        )
-        return {}
     except Exception as ex:
         st.error(f"Error al procesar colaboradores: {ex}")
         return {}

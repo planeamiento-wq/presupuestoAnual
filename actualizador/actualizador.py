@@ -55,28 +55,11 @@ QUERIES = {
     """,
 }
 
-# La consulta de colaboradores por área tiene una variante con "sede" y un
-# fallback sin esa columna, tal como hacía la app en vivo.
-QUERY_COLABORADORES_CON_SEDE = """
-    SELECT TRIM(seccion_nombre) AS area, sede, COUNT(*) AS total
-    FROM si_empleados
-    GROUP BY TRIM(seccion_nombre), sede
-"""
-QUERY_COLABORADORES_SIN_SEDE = """
-    SELECT TRIM(seccion_nombre) AS area, COUNT(*) AS total
-    FROM si_empleados
-    GROUP BY TRIM(seccion_nombre)
-"""
-
-
-def exportar_colaboradores(conexion):
-    try:
-        df = pd.read_sql(QUERY_COLABORADORES_CON_SEDE, conexion)
-    except Exception:
-        df = pd.read_sql(QUERY_COLABORADORES_SIN_SEDE, conexion)
-        df["sede"] = None
-    return df
-
+# NOTA: los datos de colaboradores/administrativos (antes si_empleados vía
+# QUERY_COLABORADORES_* / QUERY_ADMINISTRATIVOS) ya no se exportan desde acá.
+# Ahora se cargan directamente desde el Excel nominal en
+# data/colaboradores.xlsx mediante utils/data_loader.py
+# (cargar_datos_colaboradores / cargar_datos_administrativos).
 
 def main():
     conexion = mysql.connector.connect(
@@ -87,21 +70,17 @@ def main():
     )
 
     try:
+        # Tablas generales
         for nombre_archivo, query in QUERIES.items():
             df = pd.read_sql(query, conexion)
             ruta = os.path.join(DATA_DIR, nombre_archivo)
             df.to_parquet(ruta, index=False)
             print(f"{nombre_archivo}: {len(df)} registros")
 
-        df_colaboradores = exportar_colaboradores(conexion)
-        ruta_colaboradores = os.path.join(DATA_DIR, "colaboradores_area.parquet")
-        df_colaboradores.to_parquet(ruta_colaboradores, index=False)
-        print(f"colaboradores_area.parquet: {len(df_colaboradores)} registros")
     finally:
         conexion.close()
 
     print("Datos actualizados correctamente.")
-
 
 if __name__ == "__main__":
     main()
