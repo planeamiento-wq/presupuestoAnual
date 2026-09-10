@@ -1,11 +1,21 @@
 import plotly.graph_objects as go
 import streamlit as st
 
+# Azul institucional para los gráficos de "Detalle de Gastos".
+# A diferencia del resto de la app (que sí usa el color pastel de cada
+# facultad/unidad), estos dos gráficos siempre usan este mismo degradé,
+# sin importar la unidad seleccionada, porque los pasteles quedaban muy
+# claros y poco legibles en gráficos de torta/barras.
+COLOR_BASE_GASTOS = "#033f5C"
+
 
 def generar_degrade_pastel_seguro(hex_base, cantidad=4):
     """Genera variaciones armónicas de degradé bajando el brillo/saturación del
 
     color pastel inyectado, garantizando consistencia cromática.
+
+    (Ya no se usa en los gráficos de Detalle de Gastos; se conserva por si
+    se necesita en otro lado de la app.)
     """
     try:
         base = hex_base.lstrip("#")
@@ -37,6 +47,45 @@ def generar_degrade_pastel_seguro(hex_base, cantidad=4):
         return ["#CBD5E1", "#E2E8F0", "#F1F5F9", "#F8FAFC"][:cantidad]
 
 
+def generar_degrade_azul_institucional(cantidad=4, color_base=COLOR_BASE_GASTOS):
+    """Genera un degradé de azules a partir del color institucional (NO pastel),
+    mezclando progresivamente con blanco. El primer color es el más oscuro
+    (el color base tal cual); el resto se van aclarando, pero sin llegar
+    a un pastel demasiado claro (tope de mezcla ~50%), para que sigan
+    siendo bien visibles en gráficos de torta/barras.
+    """
+    try:
+        base = color_base.lstrip("#")
+        r = int(base[0:2], 16)
+        g = int(base[2:4], 16)
+        b = int(base[4:6], 16)
+
+        tope_mezcla_blanco = 0.5  # nunca se aclara más del 50% hacia blanco
+        degrade = []
+        for i in range(cantidad):
+            factor = (i * (tope_mezcla_blanco / (cantidad - 1))) if cantidad > 1 else 0
+            new_r = int(r + (255 - r) * factor)
+            new_g = int(g + (255 - g) * factor)
+            new_b = int(b + (255 - b) * factor)
+            degrade.append(f"#{new_r:02x}{new_g:02x}{new_b:02x}")
+        return degrade
+    except Exception:
+        return ["#033f5C", "#1F6690", "#5B94B5", "#8FB7CE"][:cantidad]
+
+
+def _texto_contraste(hex_color):
+    """Devuelve blanco o gris oscuro según la luminosidad del color de fondo,
+    para que el texto sea siempre legible (blanco sobre los tonos oscuros
+    del degradé, oscuro sobre los tonos más claros)."""
+    try:
+        c = hex_color.lstrip("#")
+        r, g, b = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+        luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return "#FFFFFF" if luminancia < 0.6 else "#1e293b"
+    except Exception:
+        return "#1e293b"
+
+
 def renderizar_seccion_detalle_gastos(
     nombre_unidad,
     config_colores,
@@ -46,7 +95,6 @@ def renderizar_seccion_detalle_gastos(
     val_f=None,
 ):
     color_texto = config_colores.get("texto", "#005088")
-    color_pastel_base = config_colores.get("chip_bg", "#C7E8F7")
 
     # Contingencia si no hay datos disponibles
     if not labels_p or not valores_p:
@@ -69,10 +117,13 @@ def renderizar_seccion_detalle_gastos(
 
     g_col1, g_col2 = st.columns([1.1, 1.2])
 
-    # Adaptación dinámica del degradé a la cantidad real de rubros de personal
-    colores_pie_armonicos = generar_degrade_pastel_seguro(
-        color_pastel_base, cantidad=len(labels_p)
+    # Degradé azul institucional (fijo, no cambia según la unidad/facultad
+    # seleccionada) adaptado a la cantidad real de rubros de personal.
+    colores_pie_armonicos = generar_degrade_azul_institucional(
+        cantidad=len(labels_p)
     )
+    # Texto blanco sobre las porciones oscuras, oscuro sobre las claras
+    colores_texto_pie = [_texto_contraste(c) for c in colores_pie_armonicos]
 
     # --- GRÁFICO 1: PERSONAL (CIRCULAR) ---
     with g_col1:
@@ -92,7 +143,7 @@ def renderizar_seccion_detalle_gastos(
                 ),
                 textinfo="percent",
                 textposition="inside",
-                textfont=dict(size=13, weight="bold", color="#1e293b"),
+                textfont=dict(size=13, weight="bold", color=colores_texto_pie),
                 hoverinfo="label+percent+value",
             )
         )
@@ -124,7 +175,9 @@ def renderizar_seccion_detalle_gastos(
         textos_montos_completos = [
             f"$ {v:,.0f}".replace(",", ".") for v in val_f
         ]
-        colores_barras = [color_pastel_base] * len(cat_f)
+        # Mismo azul institucional que la torta (tono sólido, no el pastel
+        # de la unidad/facultad seleccionada).
+        colores_barras = [COLOR_BASE_GASTOS] * len(cat_f)
 
         fig_bar = go.Figure(
             go.Bar(
@@ -132,10 +185,14 @@ def renderizar_seccion_detalle_gastos(
                 y=cat_f,
                 orientation="h",
                 text=textos_montos_completos,
-                textposition="auto",     # <--- Forzás a que SIEMPRE vaya adentro
-                #textangle=0,               # <--- Forzás a que SIEMPRE quede horizontal
+                textposition="auto",   # Plotly decide: afuera si no entra,
+                                       # adentro si hay espacio suficiente.
                 insidetextanchor="end",
-                textfont=dict(size=12, weight="bold", color="#1e293b"),
+                # Con textposition="auto" se puede fijar un color distinto
+                # según dónde caiga el texto: blanco si queda dentro de la
+                # barra oscura, oscuro si queda afuera sobre fondo blanco.
+                insidetextfont=dict(size=12, color="#FFFFFF", weight="bold"),
+                outsidetextfont=dict(size=12, color="#1e293b", weight="bold"),
                 marker=dict(color=colores_barras, line=dict(width=0)),
                 hovertemplate="<b>%{y}</b><br>Gasto: %{text}<extra></extra>",
             )
