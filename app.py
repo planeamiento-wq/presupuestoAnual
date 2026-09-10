@@ -60,6 +60,8 @@ with st.sidebar:
     # Smes_corte = st.select_slider("Mes de corte:", options=["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"], value="Jun")
 
 
+
+
 # ==== LÓGICA DE NAVEGACIÓN ====
 
 # Caso A: Si el usuario elige "Inicio / Portada", ejecutamos tu código original de portada
@@ -128,7 +130,7 @@ if opcion_menu == "Portada":
     col_logo, col_titulos = st.columns([1, 6], gap="small")
     
     with col_logo:
-        
+        # Asegurate de que el logo sea PNG transparente. Si es blanco o color, va a resaltar hermoso.
         st.image("assets/logo_unsta.png", width=110) 
         
     with col_titulos:
@@ -148,7 +150,7 @@ if opcion_menu == "Portada":
 
         st.markdown(
             "<h3 style='color: #CBD5E1; font-size: clamp(1.2rem, 1.8vw, 1.5rem); font-weight: 400; margin-top: 5px; margin-bottom: 0px;'> "
-            "Consolidado Anual &bull; Periodo Proyectado: 2026"
+            "Consolidado Anual &bull; Periodo Proyectivo 2026"
             "</h3>", 
             unsafe_allow_html=True
         )
@@ -166,11 +168,17 @@ if opcion_menu == "Portada":
         unsafe_allow_html=True
     )
 
-    # BAJAR LAS TARJETAS: Agregamos un espacio vertical controlado antes de las columnas
+    # 🛠️ BAJAR LAS TARJETAS: Agregamos un espacio vertical controlado antes de las columnas
     st.markdown("<br><br>", unsafe_allow_html=True)
 
     # 4. ÍNDICE DE MÓDULOS (Tarjetas blancas que contrastan con el fondo azul oscuro)
-
+    # Reemplaza a st.metric (pensado para valores con variación -> de ahí el
+    # badge verde con flecha, que no correspondía semánticamente acá).
+    # HTML en una sola línea por tarjeta (evita que Markdown lo trate como
+    # bloque de código) + CSS Grid auto-fit (mismo patrón responsive que
+    # usamos en el resto de la app).
+    # Íconos SVG en línea (estilo outline, minimalista) en vez de emojis:
+    # se ven idénticos en cualquier navegador/SO y quedan más profesionales.
     icono_tendencia = (
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#005088" '
         'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
@@ -199,8 +207,8 @@ if opcion_menu == "Portada":
     modulos = [
         (icono_tendencia, "Bloque I", "Resumen Ejecutivo", "Visión Global",
          "Consolidado macro del presupuesto anual de la universidad. Análisis rápido de ingresos, egresos y balances generales."),
-        (icono_sedes, "Bloque II", "Detalle Presupuestario", "Académico y Admin.",
-         "Evaluación del presupuesto asignado a facultades y departamentos operativos."),
+        (icono_sedes, "Bloque II", "Detalle Por Sedes", "Académico y Admin.",
+         "Apertura analítica para las 3 sedes. Evaluación del presupuesto asignado a facultades y departamentos operativos."),
         (icono_graficos, "Bloque III", "Gráficos Históricos", "Anexo: Ingresantes",
          "Estudio evolutivo y comparativo del flujo de alumnos ingresantes en determinados periodos de tiempo claves."),
     ]
@@ -208,14 +216,15 @@ if opcion_menu == "Portada":
     def tarjeta_modulo(icono_svg, bloque, titulo, etiqueta, descripcion):
         return (
             '<div style="background: #F4F7FA; border-radius: 14px; padding: 26px 24px; '
-            'border-top: 5px solid #c6dabf; box-shadow: 0px 10px 25px rgba(0,0,0,0.18); min-width: 0;">'
+            'border-top: 3px solid rgba(0, 80, 136, 0.4); box-shadow: 0px 4px 14px rgba(0,0,0,0.10); '
+            'min-width: 0; height: 100%; display: flex; flex-direction: column; box-sizing: border-box;">'
             '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">'
             f'<div style="width: 36px; height: 36px; border-radius: 10px; background: #E3EDF5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">{icono_svg}</div>'
             f'<div style="font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: #005088; text-transform: uppercase;">{bloque}</div>'
             '</div>'
             f'<div style="font-size: 21px; font-weight: 800; color: #1e293b; margin-bottom: 12px; line-height: 1.2;">{titulo}</div>'
-            f'<span style="display: inline-block; background: #E3EDF5; color: #005088; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.3px;">{etiqueta}</span>'
-            f'<p style="font-size: 13.5px; color: #64748b; line-height: 1.55; margin-top: 16px; margin-bottom: 0;">{descripcion}</p>'
+            f'<span style="display: inline-block; align-self: flex-start; background: #E3EDF5; color: #005088; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.3px;">{etiqueta}</span>'
+            f'<p style="font-size: 13.5px; color: #64748b; line-height: 1.55; margin-top: 16px; margin-bottom: 0; flex-grow: 1;">{descripcion}</p>'
             '</div>'
         )
 
@@ -224,13 +233,18 @@ if opcion_menu == "Portada":
         for icono_svg, bloque, titulo, etiqueta, descripcion in modulos
     )
 
-    # minmax(220px, 280px) 
+    # minmax(220px, 280px) en vez de (260px, 1fr): antes cada tarjeta se
+    # estiraba para llenar todo el ancho disponible; ahora tienen un tope
+    # de ancho y quedan centradas como grupo. align-items:stretch (+ height:100%
+    # y flex en cada tarjeta) asegura que las 3 queden con la misma altura,
+    # aunque las descripciones tengan distinto largo.
     st.markdown(
-        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 280px)); gap: 24px; justify-content: center;">{tarjetas_modulos}</div>',
+        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 280px)); gap: 24px; justify-content: center; align-items: stretch;">{tarjetas_modulos}</div>',
         unsafe_allow_html=True,
     )
 
-    # 5. ESPACIADO FINAL
+    # 5. ESPACIADO FINAL (antes tenía 4 <br> seguidos + el spacer propio del
+    # footer -> dejaba un vacío enorme. Un solo spacer controlado alcanza).
     st.markdown("<div style='height:40px'></div>", unsafe_allow_html=True)
 
     # Tu componente original de Footer
@@ -241,7 +255,7 @@ if opcion_menu == "Portada":
 elif opcion_menu == "Resumen Ejecutivo":
     mostrar_resumen()
 
-# Caso C: Espacio reservado para detalle presupuestario
+# Caso C: Espacio reservado para lo que hagamos después
 elif opcion_menu == "Detalle Presupuestario":
     mostrar_detalle()
 
