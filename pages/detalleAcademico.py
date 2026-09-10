@@ -358,42 +358,33 @@ def cargar_vista_academica(
 
         renderizar_bloques_facultades(paleta_dinamica)
 
-        # 1. TÍTULO DEL GRÁFICO (SOLO para "Todas las Facultades")
+        # NOTAS ACLARATORIAS (ahora arriba del título de distribución,
+        # en vez de al pie). HTML en una sola línea para que Markdown
+        # lo renderice bien.
         st.markdown(
-            """
-            <div style="margin-top: 25px; margin-bottom: 15px;">
-                <strong style="color: #005088; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    Distribución Porcentual del Presupuesto Asignado
-                </strong>
-            </div>
-            """,
+            '<div style="margin-top: 25px; padding-top: 12px; '
+            'display: flex; gap: 30px; justify-content: flex-end; align-items: center;">'
+            '<p style="font-size: 11px; color: #64748b; margin: 0;">'
+            '<strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Total de Docentes:</strong> '
+            'Contabiliza docentes únicos. La suma por unidad puede ser mayor por múltiples cargos.'
+            '</p>'
+            '<p style="font-size: 11px; color: #64748b; margin: 0;">'
+            '<strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Datos y Presupuesto:</strong> '
+            'Sincronizado con bases locales. Consolida rubros estrictamente académicos.'
+            '</p>'
+            '</div>',
             unsafe_allow_html=True,
         )
 
-        # 2. GRÁFICO DE BARRAS (SOLO para "Todas las Facultades")
+        # TÍTULO DEL GRÁFICO
+        st.markdown(
+            '<div style="margin-top: 25px; margin-bottom: 15px;">'
+            '<strong style="color: #005088; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">'
+            'Distribución Porcentual del Presupuesto Asignado'
+            '</strong>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        # GRÁFICO DE BARRAS
         renderizar_grafico_participacion(sede=sede)
-
-        # 3. NOTAS EN EL PIE DE PÁGINA (SOLO para "Todas las Facultades")
-        st.markdown(
-            """
-            <div style="
-                margin-top: 30px; 
-                padding-top: 12px; 
-                border-top: 1px solid #e2e8f0; 
-                display: flex; 
-                gap: 30px; 
-                justify-content: flex-end;
-                align-items: center;
-            ">
-                <p style="font-size: 11px; color: #64748b; margin: 0;">
-                    <strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Total de Docentes:</strong> 
-                    Contabiliza docentes únicos. La suma por unidad puede ser mayor por múltiples cargos.
-                </p>
-                <p style="font-size: 11px; color: #64748b; margin: 0;">
-                    <strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Alumnos 'FORMACIÓN CONTINUA':</strong> 
-                    Contados en el total de alumnos activos, pero no se incluyen en la distribución por Unidad Académica.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
