@@ -47,7 +47,7 @@ with st.sidebar:
     opcion_menu = st.radio(
         "Navegación:",
         [
-            "Inicio",
+            "Portada",
             "Resumen Ejecutivo",
             "Detalle Presupuestario",
             "Gráficos Históricos",
@@ -63,7 +63,7 @@ with st.sidebar:
 # ==== LÓGICA DE NAVEGACIÓN ====
 
 # Caso A: Si el usuario elige "Inicio / Portada", ejecutamos tu código original de portada
-if opcion_menu == "Inicio":
+if opcion_menu == "Portada":
     # BANNER
     col1, col2, col3 = st.columns([1, 8, 1])
     with col2:

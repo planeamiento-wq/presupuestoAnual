@@ -36,29 +36,31 @@ def cargar_vista_administrativa(
     )
 
     # Indicadores superiores compactos dinámicos
-    _, _, dkpi1, dkpi2 = st.columns([1, 1, 1, 1])
+    kpi_admin_html = (
+        f'<div style="background: white; padding: 15px; border-radius: 12px; '
+        f'border-left: 6px solid #005088; box-shadow: 0px 2px 8px rgba(0,0,0,0.05); min-width: 0;">'
+        f'<div style="font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Cantidad de Administrativos</div>'
+        f'<div style="font-size: clamp(16px, 2.3vw, 24px); font-weight: bold; color: #1e293b; margin-top: 5px; overflow-wrap: anywhere;">{cant_colaboradores}</div>'
+        f'</div>'
+    )
 
-    with dkpi1:
-        st.markdown(
-            f"""
-            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 6px solid #005088; box-shadow: 0px 2px 8px rgba(0,0,0,0.05);">
-                <div style="font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">Cantidad de Administrativos</div>
-                <div style="font-size: 24px; font-weight: bold; color: #1e293b; margin-top: 5px;">{cant_colaboradores}</div>
-            </div>
-        """,
-            unsafe_allow_html=True,
-        )
+    kpi_monto_html = (
+        f'<div style="background: white; padding: 15px; border-radius: 12px; '
+        f'border-left: 6px solid #b9e1f7; box-shadow: 0px 2px 8px rgba(0,0,0,0.05); min-width: 0;">'
+        f'<div style="font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">$ Disponible Proyectado</div>'
+        f'<div style="font-size: clamp(16px, 2.3vw, 24px); font-weight: bold; color: #1e293b; margin-top: 5px; overflow-wrap: anywhere;">{monto_formateado}</div>'
+        f'</div>'
+    )
 
-    with dkpi2:
-        st.markdown(
-            f"""
-            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 6px solid #b9e1f7; box-shadow: 0px 2px 8px rgba(0,0,0,0.05);">
-                <div style="font-size: 12px; color: #64748b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">$ Disponible Proyectado</div>
-                <div style="font-size: 24px; font-weight: bold; color: #1e293b; margin-top: 5px;">{monto_formateado}</div>
-            </div>
-        """,
-            unsafe_allow_html=True,
-        )
+    # CSS Grid auto-fit + justify-content:end para mantener las tarjetas
+    # empujadas a la derecha (como hacían las columnas vacías [1,1,1,1]),
+    # pero permitiendo que se reacomoden en vez de romper el texto.
+    # Todo en una sola línea para que Markdown lo renderice como HTML
+    # y no como bloque de código.
+    st.markdown(
+        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 220px)); gap: 14px; justify-content: end;">{kpi_admin_html}{kpi_monto_html}</div>',
+        unsafe_allow_html=True,
+    )
 
     # Bloque de auditoría o mensaje general
     if seleccion_filtro != "Todas las Áreas":

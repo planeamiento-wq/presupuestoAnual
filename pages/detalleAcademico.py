@@ -147,41 +147,32 @@ def obtener_paleta_dinamica(sede="Todas las Sedes", mes="Anual (Ene-Dic)"):
 
 
 def renderizar_kpis_superiores(datos_unidad, color_borde, color_texto):
-    k_col1, k_col2, k_col3, k_col4, k_col5 = st.columns(5)
-
     def html_kpi(titulo, valor):
-        return f"""
-            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 6px solid {color_borde}; box-shadow: 0px 4px 10px rgba(0,0,0,0.04);">
-                <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">{titulo}</div>
-                <div style="font-size: 20px; font-weight: 800; color: {color_texto}; margin-top: 5px;">{valor}</div>
-            </div>
-        """
+        return (
+            f'<div style="background: white; padding: 15px; border-radius: 12px; '
+            f'border-left: 6px solid {color_borde}; box-shadow: 0px 4px 10px rgba(0,0,0,0.04); min-width: 0;">'
+            f'<div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">{titulo}</div>'
+            f'<div style="font-size: clamp(14px, 2vw, 20px); font-weight: 800; color: {color_texto}; margin-top: 5px; overflow-wrap: anywhere; word-break: normal;">{valor}</div>'
+            f'</div>'
+        )
 
-    with k_col1:
-        st.markdown(
-            html_kpi("$ Disponible", datos_unidad["disp"]),
-            unsafe_allow_html=True,
-        )
-    with k_col2:
-        st.markdown(
-            html_kpi("Alumnos activos", datos_unidad["alum"]),
-            unsafe_allow_html=True,
-        )
-    with k_col3:
-        st.markdown(
-            html_kpi("Cant. Docentes", datos_unidad["doc"]),
-            unsafe_allow_html=True,
-        )
-    with k_col4:
-        st.markdown(
-            html_kpi("Horas Docentes", datos_unidad["hs"]),
-            unsafe_allow_html=True,
-        )
-    with k_col5:
-        st.markdown(
-            html_kpi("Cant. Colaboradores", datos_unidad["adm"]),
-            unsafe_allow_html=True,
-        )
+    tarjetas = "".join([
+        html_kpi("$ Disponible", datos_unidad["disp"]),
+        html_kpi("Alumnos activos", datos_unidad["alum"]),
+        html_kpi("Cant. Docentes", datos_unidad["doc"]),
+        html_kpi("Horas Docentes", datos_unidad["hs"]),
+        html_kpi("Cant. Colaboradores", datos_unidad["adm"]),
+    ])
+
+    # CSS Grid auto-fit: reacomoda las tarjetas (5 -> 3 -> 2 -> 1 por fila)
+    # en vez de forzar 5 columnas angostas que rompen el texto.
+    # Todo en una sola línea: si el HTML tiene saltos de línea con
+    # indentación, Markdown puede interpretarlo como bloque de código
+    # y mostrar las etiquetas como texto plano en vez de renderizarlas.
+    st.markdown(
+        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px;">{tarjetas}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def renderizar_bloques_facultades(paleta_actual):
@@ -218,30 +209,36 @@ def renderizar_bloques_facultades(paleta_actual):
         )
         return
 
-    cols = st.columns(len(facultades_activas))
-
     def html_bloque(titulo, datos, config):
-        return f"""
-            <div style="background: white; padding: 14px 10px; border-radius: 12px; border-top: 5px solid {config['border']}; box-shadow: 0px 4px 10px rgba(0,0,0,0.05); min-height: 165px;">
-                <div style="font-size: 15px; font-weight: 800; color: {config['texto']}; text-align: center; margin-bottom: 8px; height: 38px; display: flex; align-items: center; justify-content: center; line-height: 1.15;">{titulo}</div>
-                <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 6px 0;">
-                <div style="margin-top: 6px;">
-                    <span style="font-size: 10px; color: #64748b; font-weight: 800; letter-spacing: 0.5px;">DISPONIBLE:</span><br>
-                    <span style="font-size: 14px; font-weight: 800; color: #1e293b;">{datos['disp']}</span>
-                </div>
-                <div style="margin-top: 10px; display: flex; justify-content: space-between; font-size: 13px; color: #475569;">
-                    <div>Alumn:<br><strong style="color:#1e293b; font-size: 14px;">{datos['alum']}</strong></div>
-                    <div style="text-align: right;">Doc:<br><strong style="color:#1e293b; font-size: 14px;">{datos['doc']}</strong></div>
-                </div>
-            </div>
-        """
+        return (
+            f'<div style="background: white; padding: 14px 10px; border-radius: 12px; '
+            f'border-top: 5px solid {config["border"]}; box-shadow: 0px 4px 10px rgba(0,0,0,0.05); min-height: 165px; min-width: 0;">'
+            f'<div style="font-size: 15px; font-weight: 800; color: {config["texto"]}; text-align: center; margin-bottom: 8px; height: 38px; display: flex; align-items: center; justify-content: center; line-height: 1.15;">{titulo}</div>'
+            f'<hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 6px 0;">'
+            f'<div style="margin-top: 6px;">'
+            f'<span style="font-size: 10px; color: #64748b; font-weight: 800; letter-spacing: 0.5px;">DISPONIBLE:</span><br>'
+            f'<span style="font-size: clamp(12px, 1.6vw, 14px); font-weight: 800; color: #1e293b; overflow-wrap: anywhere;">{datos["disp"]}</span>'
+            f'</div>'
+            f'<div style="margin-top: 10px; display: flex; justify-content: space-between; font-size: 13px; color: #475569; gap: 6px;">'
+            f'<div style="min-width:0;">Alumn:<br><strong style="color:#1e293b; font-size: 14px;">{datos["alum"]}</strong></div>'
+            f'<div style="text-align: right; min-width:0;">Doc:<br><strong style="color:#1e293b; font-size: 14px;">{datos["doc"]}</strong></div>'
+            f'</div>'
+            f'</div>'
+        )
 
-    for i, (fac, datos, config) in enumerate(facultades_activas):
-        titulo = nombres_visibles.get(fac, fac)
-        with cols[i]:
-            st.markdown(
-                html_bloque(titulo, datos, config), unsafe_allow_html=True
-            )
+    bloques = "".join(
+        html_bloque(nombres_visibles.get(fac, fac), datos, config)
+        for fac, datos, config in facultades_activas
+    )
+
+    # CSS Grid auto-fit: reacomoda de N columnas a menos filas más anchas
+    # a medida que se achica la pantalla, en vez de comprimir todas las
+    # facultades en la misma fila fija. Todo en una sola línea (ver nota
+    # arriba sobre el bug de Markdown con HTML indentado).
+    st.markdown(
+        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px;">{bloques}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def renderizar_grafico_participacion(sede="Todas las Sedes"):
@@ -393,8 +390,8 @@ def cargar_vista_academica(
                     Contabiliza docentes únicos. La suma por unidad puede ser mayor por múltiples cargos.
                 </p>
                 <p style="font-size: 11px; color: #64748b; margin: 0;">
-                    <strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Datos y Presupuesto:</strong> 
-                    Sincronizado con bases locales. Consolida rubros estrictamente académicos.
+                    <strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Alumnos 'FORMACIÓN CONTINUA':</strong> 
+                    Contados en el total de alumnos activos, pero no se incluyen en la distribución por Unidad Académica.
                 </p>
             </div>
             """,

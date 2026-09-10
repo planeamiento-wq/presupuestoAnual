@@ -76,13 +76,15 @@ def cargar_estilo():
 
     .kpi-value{
 
-        font-size:23px; 
+        font-size:clamp(15px, 2.3vw, 23px); 
 
         font-weight:700;
 
         color:#374151;
 
         margin-top:12px;
+
+        overflow-wrap:anywhere;
 
     }
 
@@ -139,5 +141,68 @@ def cargar_estilo():
     box-shadow:0px 2px 10px rgba(0,0,0,.08);
 
     }
+
+    /* ===== RESPONSIVE: Tablets (max 992px) ===== */
+    @media (max-width: 992px){
+        .titulo-portada{
+            font-size:42px;
+        }
+        .subtitulo-portada{
+            font-size:24px;
+        }
+        .descripcion{
+            font-size:18px;
+        }
+        .titulo-dashboard{
+            font-size:28px;
+        }
+    }
+
+    /* ===== KPI GRID: contenedor responsive para las tarjetas .kpi-card =====
+       Reemplaza a st.columns(5) para que las tarjetas se reacomoden solas
+       (5 -> 3 -> 2 -> 1 por fila) en vez de angostarse todas a la vez.
+       No cambia ningún estilo visual de .kpi-card, solo el contenedor. */
+    .kpi-grid{
+        display:grid;
+        grid-template-columns:repeat(auto-fit, minmax(175px, 1fr));
+        gap:14px;
+    }
+    .kpi-grid .kpi-card{
+        min-width:0;
+    }
+
+    /* ===== RESPONSIVE: Mobile (max 640px) ===== */
+    @media (max-width: 640px){
+        .titulo-portada{
+            font-size:30px;
+            line-height:1.2;
+        }
+        .subtitulo-portada{
+            font-size:18px;
+        }
+        .descripcion{
+            font-size:15px;
+        }
+        .titulo-dashboard{
+            font-size:22px;
+        }
+        .subtitulo-dashboard{
+            font-size:15px;
+        }
+        .kpi-card, .card-dashboard{
+            padding:14px;
+            border-radius:14px;
+        }
+        .kpi-value{
+            font-size:19px;
+        }
+        .kpi-title{
+            font-size:13px;
+        }
+        .footer{
+            font-size:13px;
+        }
+    }
+
     </style>
     """, unsafe_allow_html=True)

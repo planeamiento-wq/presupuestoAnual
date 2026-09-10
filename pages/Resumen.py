@@ -3,7 +3,7 @@ import streamlit as st
 from styles.styles import cargar_estilo
 from components.header import crear_header
 from components.footer import crear_footer
-from components.kpiCard import crear_kpi
+from components.kpiCard import crear_kpi, crear_kpi_html
 from components.barraProgreso import crear_barra
 from components.card import abrir_card, cerrar_card
 from components.graficoConsolidado import crear_grafico_consolidado
@@ -181,24 +181,22 @@ def mostrar_resumen():
     # =========================================================
     st.markdown("### Indicadores generales")
 
-    kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
+    kpi1_html = crear_kpi_html("Cuotas Grado", fmt_positivo(ing_cuotas_grado), "border-margen")
+    kpi2_html = crear_kpi_html("Ingresos Netos", fmt_positivo(ingresos_netos), "border-ingresos")
+    kpi3_html = crear_kpi_html("Egresos Totales", fmt_negativo(egresos_totales), "border-egresos")
+    kpi4_html = crear_kpi_html("Inversiones Totales", fmt_negativo(inversiones_totales), "border-inversiones")
 
-    with kpi1:
-        crear_kpi("Cuotas Grado", fmt_positivo(ing_cuotas_grado), "border-margen") 
+    # Si el resultado es negativo usa el formateador rojo, si no, el positivo normal
+    fmt_res = fmt_negativo(resultado_final) if resultado_final < 0 else fmt_positivo(resultado_final)
+    kpi5_html = crear_kpi_html("Resultado Final", fmt_res, "border-resultado")#, f"{margen_porcentual:.1f} %")
 
-    with kpi2:
-        crear_kpi("Ingresos Netos", fmt_positivo(ingresos_netos), "border-ingresos")
-
-    with kpi3:
-        crear_kpi("Egresos Totales", fmt_negativo(egresos_totales), "border-egresos")
-
-    with kpi4:
-        crear_kpi("Inversiones Totales", fmt_negativo(inversiones_totales), "border-inversiones")
-
-    with kpi5:
-        # Si el resultado es negativo usa el formateador rojo, si no, el positivo normal
-        fmt_res = fmt_negativo(resultado_final) if resultado_final < 0 else fmt_positivo(resultado_final)
-        crear_kpi("Resultado Final", fmt_res, "border-resultado")#, f"{margen_porcentual:.1f} %")
+    # Grid responsive: reacomoda las 5 tarjetas (5 -> 3 -> 2 -> 1 por fila)
+    # en vez de forzar 5 columnas angostas de Streamlit. Mismos estilos,
+    # solo cambia el contenedor.
+    st.markdown(
+        f'<div class="kpi-grid">{kpi1_html}{kpi2_html}{kpi3_html}{kpi4_html}{kpi5_html}</div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown("---")
     st.markdown("### Distribución del Presupuesto")
