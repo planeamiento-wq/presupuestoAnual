@@ -64,40 +64,157 @@ with st.sidebar:
 
 # Caso A: Si el usuario elige "Inicio / Portada", ejecutamos tu código original de portada
 if opcion_menu == "Portada":
-    # BANNER
-    col1, col2, col3 = st.columns([1, 8, 1])
-    with col2:
-        st.image("assets/banner__.png", width="stretch")
+    
+    # 1. CSS RESPONSIVO + FONDO OSCURO PROFUNDO (#033f5C)
+    st.markdown("""
+        <style>
+        /* Cambiar el fondo de toda la aplicación a tu azul oscuro */
+        .stApp {
+            background-color: #033f5C !important;
+        }
+        
+        /* Contenedor de las tarjetas de los bloques (Blancas y flotantes) */
+        [data-testid="stMetric"] {
+            background-color: #FFFFFF !important;
+            padding: 1.8rem !important;
+            border-radius: 12px !important;
+            border-top: 6px solid #005088 !important; /* Pasamos la línea arriba para guiar la mirada */
+            box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.3) !important; /* Sombra más profunda para fondo oscuro */
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Tipografías dentro de las tarjetas */
+        [data-testid="stMetricLabel"] {
+            color: #005088 !important;
+            font-weight: 700 !important;
+            font-size: clamp(0.8rem, 1vw, 1.1rem) !important;
+            letter-spacing: 0.5px;
+        }
+        
+        [data-testid="stMetricValue"] {
+            font-size: clamp(1.3rem, 1.8vw, 1.7rem) !important;
+            color: #1A1A1A !important;
+            font-weight: 600 !important;
+            white-space: normal !important;
+        }
+        
+        /* Ajuste para las descripciones debajo de las tarjetas (Blanco suave para legibilidad) */
+        .descripcion-bloque {
+            color: #E0E0E0; 
+            font-size: clamp(0.85rem, 0.95vw, 1rem); 
+            margin-top: 12px; 
+            line-height: 1.45;
+        }
 
-    # TÍTULOS
+        /* El footer (componente compartido con el resto de la app) fue
+           pensado para fondo claro. Acá, sobre el azul oscuro de la
+           Portada, quedaba casi invisible -> lo re-coloreamos SOLO en
+           esta página (este <style> solo se inyecta en la rama Portada,
+           no afecta al footer en el resto de las páginas). */
+        .footer {
+            color: #A0B2C6 !important;
+        }
+        .footer strong {
+            color: #FFFFFF !important;
+        }
+        .footer hr {
+            border-top: 1px solid rgba(255,255,255,0.2) !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # 2. LOGO INSTITUCIONAL + MEMBRETE (Textos pasados a Blanco/Celeste para fondo oscuro)
+    col_logo, col_titulos = st.columns([1, 6], gap="small")
+    
+    with col_logo:
+        # Asegurate de que el logo sea PNG transparente. Si es blanco o color, va a resaltar hermoso.
+        st.image("assets/logo_unsta.png", width=110) 
+        
+    with col_titulos:
+        st.markdown(
+            "<p style='color: #A0B2C6; font-size: clamp(11px, 0.8vw, 13px); margin-bottom: 0px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 500; padding-top: 5px;'> "
+            "Universidad del Norte Santo Tomás de Aquino &bull; Servicio de Planeamiento Económico Financiero"
+            "</p>", 
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            "<h1 style='color: #FFFFFF; font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800; margin-top: 5px; margin-bottom: 0px; line-height: 1.1; letter-spacing: -0.5px;'>"
+            "PRESUPUESTO INSTITUCIONAL"
+            "</h1>", 
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            "<h3 style='color: #CBD5E1; font-size: clamp(1.2rem, 1.8vw, 1.5rem); font-weight: 400; margin-top: 5px; margin-bottom: 0px;'> "
+            "Consolidado Anual &bull; Periodo Proyectivo 2026"
+            "</h3>", 
+            unsafe_allow_html=True
+        )
+
+    # Línea divisoria superior adaptada a fondo oscuro
+    st.markdown("<hr style='margin-top: 25px; margin-bottom: 25px; border-top: 1px solid rgba(255,255,255,0.15);'>", unsafe_allow_html=True)
+
+    # 3. DESCRIPCIÓN DEL ALCANCE (Texto en gris muy claro/blanco para que se lea perfecto)
     st.markdown(
-        """
-        <div class='titulo-portada'>
-            PRESUPUESTO INSTITUCIONAL
-        </div>
-        """,
+        "<div style='font-size: clamp(1rem, 1.2vw, 1.15rem); color: #E2E8F0; line-height: 1.6; max-width: 65rem; margin-bottom: 1.5rem;'>"
+        "Este portal interactivo presenta la planificación financiera anual estructurada para la totalidad de la institución. "
+        "Centraliza los flujos de las <b>tres sedes institucionales</b>, desglosando el comportamiento de las unidades "
+        "académicas y áreas administrativas, junto con un análisis analítico del comportamiento histórico de ingresantes."
+        "</div>", 
+        unsafe_allow_html=True
+    )
+
+    # 🛠️ BAJAR LAS TARJETAS: Agregamos un espacio vertical controlado antes de las columnas
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+    # 4. ÍNDICE DE MÓDULOS (Tarjetas blancas que contrastan con el fondo azul oscuro)
+    # Reemplaza a st.metric (pensado para valores con variación -> de ahí el
+    # badge verde con flecha, que no correspondía semánticamente acá).
+    # HTML en una sola línea por tarjeta (evita que Markdown lo trate como
+    # bloque de código) + CSS Grid auto-fit (mismo patrón responsive que
+    # usamos en el resto de la app).
+    modulos = [
+        ("📈", "Bloque I", "Resumen Ejecutivo", "Visión Global",
+         "Consolidado macro del presupuesto anual de la universidad. Análisis rápido de ingresos, egresos y balances generales."),
+        ("📑", "Bloque II", "Detalle Por Sedes", "Académico y Admin.",
+         "Apertura analítica para las 3 sedes. Evaluación del presupuesto asignado a facultades y departamentos operativos."),
+        ("📊", "Bloque III", "Gráficos Históricos", "Anexo: Ingresantes",
+         "Estudio evolutivo y comparativo del flujo de alumnos ingresantes en determinados periodos de tiempo claves."),
+    ]
+
+    def tarjeta_modulo(icono, bloque, titulo, etiqueta, descripcion):
+        return (
+            '<div style="background: #F4F7FA; border-radius: 14px; padding: 26px 24px; '
+            'border-top: 5px solid #005088; box-shadow: 0px 10px 25px rgba(0,0,0,0.18); min-width: 0;">'
+            f'<div style="font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: #005088; text-transform: uppercase; margin-bottom: 8px;">{icono} {bloque}</div>'
+            f'<div style="font-size: 21px; font-weight: 800; color: #1e293b; margin-bottom: 12px; line-height: 1.2;">{titulo}</div>'
+            f'<span style="display: inline-block; background: #E3EDF5; color: #005088; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.3px;">{etiqueta}</span>'
+            f'<p style="font-size: 13.5px; color: #64748b; line-height: 1.55; margin-top: 16px; margin-bottom: 0;">{descripcion}</p>'
+            '</div>'
+        )
+
+    tarjetas_modulos = "".join(
+        tarjeta_modulo(icono, bloque, titulo, etiqueta, descripcion)
+        for icono, bloque, titulo, etiqueta, descripcion in modulos
+    )
+
+    # minmax(220px, 280px) en vez de (260px, 1fr): antes cada tarjeta se
+    # estiraba para llenar todo el ancho disponible; ahora tienen un tope
+    # de ancho y quedan centradas como grupo.
+    st.markdown(
+        f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 280px)); gap: 24px; justify-content: center;">{tarjetas_modulos}</div>',
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        """
-        <div class='subtitulo-portada'> 2026 </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # 5. ESPACIADO FINAL (antes tenía 4 <br> seguidos + el spacer propio del
+    # footer -> dejaba un vacío enorme. Un solo spacer controlado alcanza).
+    st.markdown("<div style='height:40px'></div>", unsafe_allow_html=True)
 
-    # DESCRIPCIÓN
-    st.markdown(
-        """
-        <div class='descripcion'>
-            Proyección y seguimiento de ingresos, egresos, inversiones y resultados institucionales.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.html("<br>" * 8)
-
+    # Tu componente original de Footer
     crear_footer()
+
 
 # Caso B: Si elige "Resumen Ejecutivo", abrimos la "caja" de tu componente
 elif opcion_menu == "Resumen Ejecutivo":
