@@ -6,7 +6,7 @@ import streamlit as st
 # facultad/unidad), estos dos gráficos siempre usan este mismo degradé,
 # sin importar la unidad seleccionada, porque los pasteles quedaban muy
 # claros y poco legibles en gráficos de torta/barras.
-COLOR_BASE_GASTOS = "#033f5C"
+COLOR_BASE_GASTOS = "#1F4EAA"
 
 
 def generar_degrade_pastel_seguro(hex_base, cantidad=4):
@@ -70,7 +70,7 @@ def generar_degrade_azul_institucional(cantidad=4, color_base=COLOR_BASE_GASTOS)
             degrade.append(f"#{new_r:02x}{new_g:02x}{new_b:02x}")
         return degrade
     except Exception:
-        return ["#033f5C", "#1F6690", "#5B94B5", "#8FB7CE"][:cantidad]
+        return ["#1F4EAA", "#446BB8", "#6989C6", "#8FA6D4"][:cantidad]
 
 
 def _texto_contraste(hex_color):

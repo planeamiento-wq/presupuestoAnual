@@ -612,3 +612,131 @@ def obtener_detalle_gastos_UA(
     except Exception as e:
         st.error(f"Error al obtener el detalle de gastos de la unidad: {e}")
         return [], [], [], []
+
+@st.cache_data(ttl=300)
+def obtener_detalle_inversiones_UA(
+    nombre_unidad_app, sede="Todas las Sedes", mes="Anual (Ene-Dic)"
+):
+    """Desglose de Inversiones (por Concepto) de una unidad académica
+    específica. Sede tolerante + mapeo de Unidad/Subunidad a facultad
+    oficial (igual que obtener_detalle_gastos_UA), pero filtrando
+    Tipo/Descripción tipo == 'INVERSIONES' en vez de PERS/FUNC. Función
+    nueva y aislada: no modifica ni depende de obtener_detalle_gastos_UA.
+
+    A propósito NO filtra por Categoria == 'Académico': en el Excel, las
+    filas de Inversiones de CEOP (y potencialmente otras unidades) vienen
+    tageadas como 'Administrativo' aunque CEOP se trata como unidad
+    académica en el resto de la app. El mapeo a facultad_oficial (por
+    palabras clave en el nombre de Unidad/Sub unidad) ya es suficientemente
+    específico como para no depender de que el Excel haya categorizado la
+    fila de forma consistente.
+    """
+    df = cargar_datos_presupuesto()
+    if df.empty:
+        return [], []
+
+    try:
+        df.columns = df.columns.str.strip()
+
+        if sede != "Todas las Sedes" and "Sede" in df.columns:
+            sede_buscada = normalizar_texto_sede(sede)
+
+            def coincide_sede(val_columna):
+                val_norm = normalizar_texto_sede(str(val_columna))
+                if "CONCEP" in sede_buscada or "CONCEO" in sede_buscada:
+                    return "CONCEP" in val_norm or "CONCEO" in val_norm
+                return sede_buscada in val_norm or val_norm in sede_buscada
+
+            df = df[df["Sede"].apply(coincide_sede)]
+
+        col_unidad = next(
+            (c for c in df.columns if "UNIDAD" in c.upper() and "SUB" not in c.upper()),
+            None,
+        )
+        col_subunidad = next(
+            (c for c in df.columns if "SUB" in c.upper() and "UNIDAD" in c.upper()),
+            None,
+        )
+
+        def extraer_unidad_oficial(row):
+            txt_unidad = (
+                str(row[col_unidad]).upper().strip()
+                if col_unidad and pd.notna(row[col_unidad])
+                else ""
+            )
+            txt_subunidad = (
+                str(row[col_subunidad]).upper().strip()
+                if col_subunidad and pd.notna(row[col_subunidad])
+                else ""
+            )
+            if any(
+                k in txt_subunidad
+                for k in ["DEPTO.FORM", "HUM.CRIST", "FORM.HUM", "HUMANISTICA", "HUMANÍSTICA"]
+            ):
+                return "Dpto. de Formación Humanística"
+            if "CEOP" in txt_unidad or "CENTRO DE ESTUDIOS" in txt_unidad:
+                return "CEOP"
+            return normalizar_facultad(txt_unidad)
+
+        df["facultad_oficial"] = df.apply(extraer_unidad_oficial, axis=1)
+
+        df_unidad = df[df["facultad_oficial"] == nombre_unidad_app].copy()
+        if df_unidad.empty:
+            return [], []
+
+        col_monto = "PRES. TOTAL"
+        if mes != "Anual (Ene-Dic)":
+            col_encontrada = next(
+                (c for c in df_unidad.columns if c.lower().strip() == mes.lower().strip()),
+                None,
+            )
+            if col_encontrada:
+                col_monto = col_encontrada
+
+        def limpiar_monto(val):
+            if pd.isna(val):
+                return 0.0
+            if isinstance(val, (int, float)):
+                return float(val)
+            s = str(val).replace("$", "").strip()
+            if "," in s and "." in s:
+                s = s.replace(".", "").replace(",", ".")
+            elif "," in s:
+                s = s.replace(",", ".")
+            try:
+                return float(s)
+            except Exception:
+                return 0.0
+
+        df_unidad["monto_limpio"] = df_unidad[col_monto].apply(limpiar_monto)
+
+        col_tipo = next(
+            (c for c in df_unidad.columns if "DESC" in c.upper() and "TIPO" in c.upper()),
+            None,
+        )
+        if not col_tipo:
+            col_tipo = next(
+                (c for c in df_unidad.columns if "TIPO" in c.upper()),
+                "Descripción tipo",
+            )
+
+        col_concepto = next(
+            (c for c in df_unidad.columns if "CONCEPTO" in c.upper()),
+            "Concepto",
+        )
+
+        df_inv = df_unidad[
+            df_unidad[col_tipo].astype(str).str.upper().str.contains("INVERSION", na=False)
+        ]
+        grp_inv = (
+            df_inv.groupby(col_concepto)["monto_limpio"]
+            .sum()
+            .sort_values(ascending=False)
+        )
+        grp_inv = grp_inv[grp_inv > 0]
+
+        return grp_inv.index.tolist(), grp_inv.values.tolist()
+
+    except Exception as e:
+        st.error(f"Error al obtener el detalle de inversiones de la unidad: {e}")
+        return [], []

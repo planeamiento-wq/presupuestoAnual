@@ -1,9 +1,11 @@
 import streamlit as st
 from components.detalleGastos import renderizar_seccion_detalle_gastos
+from components.detalleInversiones import renderizar_seccion_detalle_inversiones
 from data.metricasAdministrativas import (
     calcular_kpis_administrativos,
     formatear_monto_millones,
     obtener_detalle_gastos_administrativo,
+    obtener_detalle_inversiones_administrativo,
 )
 
 def cargar_vista_administrativa(
@@ -79,6 +81,17 @@ def cargar_vista_administrativa(
             valores_p=val_p,
             cat_f=cat_f,
             val_f=val_f,
+        )
+
+        # 3. Detalle de Inversiones (componente nuevo e independiente)
+        labels_inv, val_inv = obtener_detalle_inversiones_administrativo(
+            seleccion_filtro, sede=sede, mes=mes
+        )
+        renderizar_seccion_detalle_inversiones(
+            seleccion_filtro,
+            config_admin,
+            labels_inv=labels_inv,
+            valores_inv=val_inv,
         )
     else:
         st.markdown("<br>", unsafe_allow_html=True)

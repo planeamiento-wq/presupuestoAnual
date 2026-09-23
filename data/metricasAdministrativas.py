@@ -338,3 +338,84 @@ def formatear_monto_millones(monto):
         return f"$ {val_float:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
     except Exception:
         return "$ 0"
+
+@st.cache_data(ttl=300)
+def obtener_detalle_inversiones_administrativo(
+    nombre_area_app, sede="Todas las Sedes", mes="Anual (Ene-Dic)"
+):
+    """Desglose de Inversiones (por Concepto) de un área/servicio
+    administrativo específico. Mismo patrón de filtrado que
+    obtener_detalle_gastos_administrativo (Categoria == 'Administrativo',
+    sede tolerante, canonicalización de Sub unidad), pero filtrando
+    Tipo/Descripción tipo == 'INVERSIONES' en vez de PERS/FUNC. Función
+    nueva y aislada: no modifica ni depende de
+    obtener_detalle_gastos_administrativo.
+    """
+    df = cargar_datos_presupuesto()
+    if df.empty:
+        return [], []
+
+    try:
+        df.columns = df.columns.str.strip()
+
+        if "Categoria" in df.columns:
+            df = df[df["Categoria"].astype(str).str.upper().str.contains("ADMIN", na=False)]
+
+        if sede != "Todas las Sedes" and "Sede" in df.columns:
+            sede_buscada = normalizar_texto_sede(sede)
+            def coincide_sede(val_columna):
+                val_norm = normalizar_texto_sede(str(val_columna))
+                if "CONCEP" in sede_buscada or "CONCEO" in sede_buscada:
+                    return "CONCEP" in val_norm or "CONCEO" in val_norm
+                return sede_buscada in val_norm or val_norm in sede_buscada
+            df = df[df["Sede"].apply(coincide_sede)]
+
+        col_subunidad = next((c for c in df.columns if "SUB" in c.upper() and "UNIDAD" in c.upper()), "Sub unidad")
+        df[col_subunidad] = df[col_subunidad].astype(str).str.strip().apply(canonicalizar_subunidad)
+
+        if nombre_area_app != "Todas las Áreas":
+            df_area = df[df[col_subunidad] == nombre_area_app.strip()].copy()
+        else:
+            df_area = df.copy()
+
+        if df_area.empty:
+            return [], []
+
+        col_monto = "PRES. TOTAL"
+        if mes != "Anual (Ene-Dic)":
+            col_encontrada = next((c for c in df_area.columns if c.lower().strip() == mes.lower().strip()), None)
+            if col_encontrada:
+                col_monto = col_encontrada
+
+        def limpiar_monto(val):
+            if pd.isna(val):
+                return 0.0
+            if isinstance(val, (int, float)):
+                return float(val)
+            s = str(val).replace("$", "").strip()
+            if "," in s and "." in s:
+                s = s.replace(".", "").replace(",", ".")
+            elif "," in s:
+                s = s.replace(",", ".")
+            try:
+                return float(s)
+            except Exception:
+                return 0.0
+
+        df_area["monto_limpio"] = df_area[col_monto].apply(limpiar_monto)
+
+        col_tipo = next((c for c in df_area.columns if "DESC" in c.upper() and "TIPO" in c.upper()), None)
+        if not col_tipo:
+            col_tipo = next((c for c in df_area.columns if "TIPO" in c.upper()), "Descripción tipo")
+
+        col_concepto = next((c for c in df_area.columns if "CONCEPTO" in c.upper()), "Concepto")
+
+        df_inv = df_area[df_area[col_tipo].astype(str).str.upper().str.contains("INVERSION", na=False)]
+        grp_inv = df_inv.groupby(col_concepto)["monto_limpio"].sum().sort_values(ascending=False)
+        grp_inv = grp_inv[grp_inv > 0]
+
+        return grp_inv.index.tolist(), grp_inv.values.tolist()
+
+    except Exception as e:
+        st.error(f"Error al obtener el detalle de inversiones del área: {e}")
+        return [], []

@@ -3,12 +3,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from components.detalleGastos import renderizar_seccion_detalle_gastos
+from components.detalleInversiones import renderizar_seccion_detalle_inversiones
 from data.metricasAcademicas import (
     obtener_alumnos_activos_por_facultad,
     obtener_colaboradores_por_area,
     obtener_metricas_docentes,
     obtener_presupuesto_por_facultad,
     obtener_detalle_gastos_UA,
+    obtener_detalle_inversiones_UA,
 )
 
 PALETA_FACULTADES_BASE = {
@@ -351,6 +353,17 @@ def cargar_vista_academica(
             val_f=val_f,
         )
 
+        # 3. Detalle de Inversiones (componente nuevo e independiente)
+        labels_inv, val_inv = obtener_detalle_inversiones_UA(
+            seleccion_filtro, sede=sede, mes=mes
+        )
+        renderizar_seccion_detalle_inversiones(
+            seleccion_filtro,
+            cfg,
+            labels_inv=labels_inv,
+            valores_inv=val_inv,
+        )
+
         st.markdown("<br>", unsafe_allow_html=True)
     else:
         renderizar_kpis_superiores(cfg, "#005088", "#005088")
@@ -362,7 +375,7 @@ def cargar_vista_academica(
         # en vez de al pie). HTML en una sola línea para que Markdown
         # lo renderice bien.
         st.markdown(
-            '<div style="margin-top: 25px; padding-top: 12px; '
+            '<div style="margin-top: 25px; padding-top: 12px; border-top: 1px solid #e2e8f0; '
             'display: flex; gap: 30px; justify-content: flex-end; align-items: center;">'
             '<p style="font-size: 11px; color: #64748b; margin: 0;">'
             '<strong style="color: #005088; text-transform: uppercase; font-size: 10px; letter-spacing: 0.4px;">• Total de Docentes:</strong> '
